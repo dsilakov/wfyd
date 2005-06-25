@@ -116,6 +116,7 @@ class GUI(object):
                               text)
             notesbox.set_buffer(gtk.TextBuffer())
             self.start_time = None
+            self.root.save()
             self.refresh_projectbox(projectbox)
         self.refresh_entrytree(self.store, self.projectbox.get_child())
 
@@ -130,7 +131,7 @@ class GUI(object):
         popup.popup(None, None, None, event.button, event.time)
 
     def on_edit_entry_activate(self, *args):
-        print "on_edit_entry_activate called with args %s" % str(args)
+        self.display_entry_edit_window()
 
     def on_entry_delete_activate(self, menuitem):
         store, iter = self.entrytree.get_selection().get_selected()
@@ -145,6 +146,7 @@ class GUI(object):
                 project.remove_entry(n)
             n+=1
         store.remove(iter)
+        self.root.save()
 
     def on_projectbox_entry_changed(self, entrybox):
         text = entrybox.get_text()
@@ -183,12 +185,9 @@ class GUI(object):
                 self.root.remove(projectname)
             except KeyError:
                 pass
+            self.root.save()
             self.refresh_projectbox(projectbox)
-        self.root.save()
         dia.destroy()
-
-    def on_delete_project_dialog_response(self, *args):
-        print args
 
     def on_notesbox_key_press_event(self, *args):
         gobutton = self.wtree.get_widget('gobutton')
@@ -208,6 +207,38 @@ class GUI(object):
         dialog.set_copyright(COPYRIGHT)
         dialog.run()
         dialog.destroy()
+
+    def on_entry_edit_delete_event(self, *args):
+        return True # dont allow the entry window to be destroyed
+
+    def on_entry_edit_cancel_clicked(self, *args):
+        self.hide_entry_edit_window()
+
+    def on_entry_edit_apply_clicked(self, *args):
+        datebox = self.wtree.get_widget('date_edit_box')
+        minutebox = self.wtree.get_widget('minutes_edit_box')
+        notesbox   = self.wtree.get_widget('notes_edit_box')
+        begin = int(datebox.get_time())
+        seconds = int(minutebox.get_value() * 60)
+        buffer = notesbox.get_buffer()
+        start, end = buffer.get_bounds()
+        text = buffer.get_text(start, end)
+        store, iter = self.entrytree.get_selection().get_selected()
+        oldbegin = store.get_value(iter, 0)
+        projectname = self.projectbox.get_child().get_text()
+        project = self.root.get(projectname)
+        if not project:
+            return
+        n = 0
+        for entry in project.get_entries():
+            if oldbegin == entry.begin:
+                entry.begin = begin
+                entry.end = begin + seconds
+                entry.set_notes(text)
+            n+=1
+        self.root.save()
+        self.hide_entry_edit_window()
+        self.refresh_entrytree(self.store, self.projectbox.get_child())
 
     # utility methods
 
@@ -243,21 +274,43 @@ class GUI(object):
             duration = int(entry.end - entry.begin)
             iter = self.store.append()
             store.set_value(iter, 0, entry.begin)
-            store.set_value(iter, 1, time.strftime(ISO, time.gmtime(begin)))
+            store.set_value(iter, 1, time.strftime(ISO, time.localtime(begin)))
             store.set_value(iter, 2, duration)
             store.set_value(iter, 3, minutes_repr(duration))
             store.set_value(iter, 4, entry.notes)
 
+    def display_entry_edit_window(self):
+        store, iter = self.entrytree.get_selection().get_selected()
+        start = store.get_value(iter, 0)
+        minutes = store.get_value(iter, 2) / 60
+        notes = store.get_value(iter, 4)
+        entry_edit = self.wtree.get_widget('entry_edit')
+        startdate_widget = self.wtree.get_widget('date_edit_box')
+        startdate_widget.set_time(start)
+        minutes_widget = self.wtree.get_widget('minutes_edit_box')
+        minutes_widget.set_value(minutes)
+        notes_widget = self.wtree.get_widget('notes_edit_box')
+        notes_widget.get_buffer().set_text(notes)
+        entry_edit.set_transient_for(self.entrytree.get_toplevel())
+        entry_edit.show_all()
+
+    def hide_entry_edit_window(self):
+        entry_edit = self.wtree.get_widget('entry_edit')
+        entry_edit.hide()
+
 def minutes_repr(seconds):
     minutes = seconds / 60
     hours = minutes / 60
+    minutes = minutes - (hours * 60)
     return '%02d:%02d' % (hours, minutes)
 
 class Root(object):
+    options = None
+    
     def __init__(self):
         self.projects = {}
         self.categories = {}
-        self.projectname = None
+        self.options = {}
         
     def get(self, projectname):
         return self.projects.get(projectname)
@@ -283,6 +336,12 @@ class Root(object):
 
     def save(self):
         pickle.dump(self, open(datafile, 'w'))
+
+    def set_option(self, name, value):
+        if self.options is None:
+            self.options = {}
+        self.options[name] = value
+        self.root.save()
 
 class Project(object):
     def __init__(self, name):
