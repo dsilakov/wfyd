@@ -11,7 +11,6 @@ import os
 import pickle
 
 here = os.path.abspath(os.path.split(__file__)[0])
-print here
 
 VERSION = '0.1'
 AUTHORS = ['Chris McDonough (chrism@plope.com)']
@@ -93,11 +92,13 @@ class GUI(object):
         self.refresh_entrytree(self.store, projectbox.get_child())
 
     def nag_init(self):
+        self.nagging = False
         self.last_nag_time = time.time()
         self.nag_interval = 1800 # 30 minutes
         self.nag_id = gobject.timeout_add(
             1000, self.maybe_nag, self.wtree.get_widget('main')
             )
+
 
     # signal handlers
 
@@ -108,10 +109,13 @@ class GUI(object):
     def on_gobutton_toggled(self, widget):
         if widget.get_active():
             self.start_time = int(time.time())
+            alignment = widget.get_children()[0]
+            hbox = alignment.get_children()[0]
+            image, label = hbox.get_children()
+            image.set_from_file(os.path.join(here, 'resources', 'stop.png'))
             self.source_id = gobject.timeout_add(
                 100, self.refresh_gobutton, widget
                 )
-            notesbox = self.wtree.get_widget('notesbox')
         else:
             assert self.start_time is not None
             gobject.source_remove(self.source_id)
@@ -136,6 +140,7 @@ class GUI(object):
             image, label = hbox.get_children()
             image.set_from_file(os.path.join(here, 'resources', 'record.png'))
             label.set_text('Start ')
+        self.change_status('')
         self.refresh_entrytree(self.store, self.projectbox.get_child())
 
     def on_entrytree_row_activated(self, *args):
@@ -265,7 +270,6 @@ class GUI(object):
         alignment = widget.get_children()[0]
         hbox = alignment.get_children()[0]
         image, label = hbox.get_children()
-        image.set_from_file(os.path.join(here, 'resources', 'stop.png'))
         if self.start_time:
             label.set_text(minutes_repr(time.time() - self.start_time))
         return True
@@ -273,12 +277,32 @@ class GUI(object):
     def refresh_projectbox(self, projectbox):
         active = projectbox.get_active()
         listlen = len(projectbox.get_model())
-            
+
+        completion = gtk.EntryCompletion()
+        completion_liststore = gtk.ListStore(str)
+
         for n in range(listlen):
             projectbox.remove_text(0)
 
-        for projectname in self.root.get_projectnames():
+        projectnames = self.root.get_projectnames()
+
+        for projectname in projectnames:
             projectbox.append_text(projectname)
+            completion_liststore.append([projectname])
+
+        completion.set_model(completion_liststore)
+        projectbox.get_child().set_completion(completion)
+        completion.set_text_column(0)
+
+        numprojects = len(projectnames)
+
+        if active > numprojects:
+            projectbox.set_active(0)
+
+        if not numprojects:
+            projectbox.get_child().set_text('')
+            if self.store is not None:
+                self.store.clear()
 
         projectbox.set_active(active)
 
@@ -320,9 +344,18 @@ class GUI(object):
     def maybe_nag(self, window):
         if self.last_nag_time + self.nag_interval < time.time():
             print "nagging"
+            self.nagging = True
             self.last_nag_time = time.time()
+            self.change_status('Nagging')
             window.present()
         return True
+
+    def change_status(self, status):
+        appbar = self.wtree.get_widget('appbar1')
+        statusframe = appbar.get_children()[1]
+        label = statusframe.get_children()[0]
+        label.set_text(status)
+        
 
 def minutes_repr(seconds):
     minutes = seconds / 60
@@ -349,7 +382,11 @@ class Root(object):
         return self.projects[projectname]
 
     def get_projectnames(self):
-        return self.projects.keys()
+        def lower(a,b):
+            return cmp(a.lower(), b.lower())
+        names = self.projects.keys()
+        names.sort(lower)
+        return names
 
     def add(self, projectname):
         self.projects[projectname] = Project(projectname)

@@ -1,8 +1,7 @@
 Tooltips for elided notes in the treeview.
   See http://www.daa.com.au/pipermail/pygtk/2004-February/006954.html
 
-Nag dialog
+Nag interval configuration.
 
-
-
-
+Better behavior when projects are deleted (sometimes store isn't
+cleared and old projectname remains in projectbar).
