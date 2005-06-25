@@ -388,7 +388,7 @@
       <child>
 	<widget class="GtkLabel" id="date_label">
 	  <property name="visible">True</property>
-	  <property name="label" translatable="yes">Start Date</property>
+	  <property name="label" translatable="yes">Start</property>
 	  <property name="use_underline">False</property>
 	  <property name="use_markup">False</property>
 	  <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -416,6 +416,17 @@
 	  <property name="dateedit_flags">GNOME_DATE_EDIT_SHOW_TIME|GNOME_DATE_EDIT_24_HR</property>
 	  <property name="lower_hour">7</property>
 	  <property name="upper_hour">19</property>
+	</widget>
+	<packing>
+	  <property name="padding">15</property>
+	  <property name="expand">False</property>
+	  <property name="fill">False</property>
+	</packing>
+      </child>
+
+      <child>
+	<widget class="GtkHSeparator" id="hseparator4">
+	  <property name="visible">True</property>
 	</widget>
 	<packing>
 	  <property name="padding">0</property>
@@ -468,6 +479,17 @@
       </child>
 
       <child>
+	<widget class="GtkHSeparator" id="hseparator3">
+	  <property name="visible">True</property>
+	</widget>
+	<packing>
+	  <property name="padding">5</property>
+	  <property name="expand">False</property>
+	  <property name="fill">False</property>
+	</packing>
+      </child>
+
+      <child>
 	<widget class="GtkLabel" id="notes_label">
 	  <property name="visible">True</property>
 	  <property name="label" translatable="yes">Notes</property>
@@ -494,6 +516,7 @@
 
       <child>
 	<widget class="GtkScrolledWindow" id="scrolledwindow3">
+	  <property name="height_request">160</property>
 	  <property name="visible">True</property>
 	  <property name="can_focus">True</property>
 	  <property name="hscrollbar_policy">GTK_POLICY_ALWAYS</property>
@@ -529,8 +552,10 @@
       </child>
 
       <child>
-	<widget class="GtkFixed" id="fixed1">
+	<widget class="GtkHBox" id="hbox3">
 	  <property name="visible">True</property>
+	  <property name="homogeneous">True</property>
+	  <property name="spacing">0</property>
 
 	  <child>
 	    <widget class="GtkButton" id="entry_edit_apply">
@@ -538,15 +563,16 @@
 	      <property name="height_request">27</property>
 	      <property name="visible">True</property>
 	      <property name="can_focus">True</property>
-	      <property name="label">gtk-apply</property>
+	      <property name="label">gtk-ok</property>
 	      <property name="use_stock">True</property>
 	      <property name="relief">GTK_RELIEF_NORMAL</property>
 	      <property name="focus_on_click">True</property>
 	      <signal name="clicked" handler="on_entry_edit_apply_clicked" last_modification_time="Sat, 25 Jun 2005 12:27:05 GMT"/>
 	    </widget>
 	    <packing>
-	      <property name="x">464</property>
-	      <property name="y">0</property>
+	      <property name="padding">5</property>
+	      <property name="expand">False</property>
+	      <property name="fill">False</property>
 	    </packing>
 	  </child>
 
@@ -563,8 +589,9 @@
 	      <signal name="clicked" handler="on_entry_edit_cancel_clicked" last_modification_time="Sat, 25 Jun 2005 12:27:16 GMT"/>
 	    </widget>
 	    <packing>
-	      <property name="x">544</property>
-	      <property name="y">0</property>
+	      <property name="padding">5</property>
+	      <property name="expand">False</property>
+	      <property name="fill">False</property>
 	    </packing>
 	  </child>
 	</widget>

@@ -10,6 +10,9 @@ import time
 import os
 import pickle
 
+here = os.path.abspath(os.path.split(__file__)[0])
+print here
+
 VERSION = '0.1'
 AUTHORS = ['Chris McDonough (chrism@plope.com)']
 COPYRIGHT = AUTHORS[0]
@@ -36,6 +39,7 @@ class GUI(object):
         self.projectbox_init()
         self.projectbox.set_active(0)
         self.entrytree_init()
+        self.nag_init()
 
     def signal_init(self):
         dict = {}
@@ -47,6 +51,12 @@ class GUI(object):
     def projectbox_init(self):
         self.projectbox = self.wtree.get_widget('projectbox')
         self.refresh_projectbox(self.projectbox)
+        widget = self.wtree.get_widget('gobutton')
+        alignment = widget.get_children()[0]
+        hbox = alignment.get_children()[0]
+        image, label = hbox.get_children()
+        image.set_from_file(os.path.join(here, 'resources', 'record.png'))
+        label.set_text('Start ')
         self.projectbox.get_child().connect('changed',
                                             self.on_projectbox_entry_changed)
 
@@ -82,6 +92,13 @@ class GUI(object):
         projectbox = self.wtree.get_widget('projectbox')
         self.refresh_entrytree(self.store, projectbox.get_child())
 
+    def nag_init(self):
+        self.last_nag_time = time.time()
+        self.nag_interval = 1800 # 30 minutes
+        self.nag_id = gobject.timeout_add(
+            1000, self.maybe_nag, self.wtree.get_widget('main')
+            )
+
     # signal handlers
 
     def on_main_destroy(self, *args):
@@ -92,17 +109,13 @@ class GUI(object):
         if widget.get_active():
             self.start_time = int(time.time())
             self.source_id = gobject.timeout_add(
-                1000, self.refresh_gobutton, widget
+                100, self.refresh_gobutton, widget
                 )
             notesbox = self.wtree.get_widget('notesbox')
         else:
             assert self.start_time is not None
             gobject.source_remove(self.source_id)
             self.source_id = None
-            alignment = widget.get_children()[0]
-            hbox = alignment.get_children()[0]
-            image, label = hbox.get_children()
-            label.set_text('Start')
             end_time = time.time()
             seconds = int((end_time - self.start_time))
             projectbox = self.wtree.get_widget('projectbox')
@@ -118,10 +131,15 @@ class GUI(object):
             self.start_time = None
             self.root.save()
             self.refresh_projectbox(projectbox)
+            alignment = widget.get_children()[0]
+            hbox = alignment.get_children()[0]
+            image, label = hbox.get_children()
+            image.set_from_file(os.path.join(here, 'resources', 'record.png'))
+            label.set_text('Start ')
         self.refresh_entrytree(self.store, self.projectbox.get_child())
 
-    def on_entrytree_row_activated(self):
-        print "row activated"
+    def on_entrytree_row_activated(self, *args):
+        self.display_entry_edit_window()
 
     def on_entrytree_button_press_event(self, view, event):
         if event.button != 3:
@@ -209,6 +227,7 @@ class GUI(object):
         dialog.destroy()
 
     def on_entry_edit_delete_event(self, *args):
+        self.hide_entry_edit_window()
         return True # dont allow the entry window to be destroyed
 
     def on_entry_edit_cancel_clicked(self, *args):
@@ -246,7 +265,7 @@ class GUI(object):
         alignment = widget.get_children()[0]
         hbox = alignment.get_children()[0]
         image, label = hbox.get_children()
-        #image.set_from_icon_name('', gtk.ICON_SIZE_BUTTON)
+        image.set_from_file(os.path.join(here, 'resources', 'stop.png'))
         if self.start_time:
             label.set_text(minutes_repr(time.time() - self.start_time))
         return True
@@ -297,6 +316,13 @@ class GUI(object):
     def hide_entry_edit_window(self):
         entry_edit = self.wtree.get_widget('entry_edit')
         entry_edit.hide()
+
+    def maybe_nag(self, window):
+        if self.last_nag_time + self.nag_interval < time.time():
+            print "nagging"
+            self.last_nag_time = time.time()
+            window.present()
+        return True
 
 def minutes_repr(seconds):
     minutes = seconds / 60
