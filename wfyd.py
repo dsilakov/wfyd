@@ -20,9 +20,7 @@ datafile = os.path.expanduser('~/.wfyd.dat')
 
 ISO = "%Y-%m-%d %H:%M:%S"
 
-class GUI(object):
-    store = None
-    recording = None
+class MainWindow(object):
     
     def __init__(self):
         if os.path.exists(datafile):
@@ -31,76 +29,30 @@ class GUI(object):
             self.root = Root()
         gnome.init('WFYD', VERSION)
         self.wtree = gtk.glade.XML('wfyd.glade')
-        window = self.wtree.get_widget('main')
-        gnome.ui.window_icon_set_from_default(window)
+        self.window = self.wtree.get_widget('main')
+        gnome.ui.window_icon_set_from_default(self.window)
         self.start_time = None
-        self.signal_init()
-        self.projectbox_init()
-        self.projectbox.set_active(0)
-        self.entrytree_init()
-        self.nag_init()
-
-    def signal_init(self):
-        dict = {}
-        for k in self.__class__.__dict__:
-            if k.startswith('on_'):
-                dict[k] = getattr(self, k)
-        self.wtree.signal_autoconnect(dict)
-
-    def projectbox_init(self):
+        init_signals(self, self.wtree.signal_autoconnect)
+        self.entrytree_widget = EntryTree(self.wtree, self.root)
         self.projectbox = self.wtree.get_widget('projectbox')
-        self.refresh_projectbox(self.projectbox)
+        self.gobutton = self.wtree.get_widget('gobutton')
+        self.refresh_projectbox()
         widget = self.wtree.get_widget('gobutton')
         alignment = widget.get_children()[0]
         hbox = alignment.get_children()[0]
         image, label = hbox.get_children()
         image.set_from_file(os.path.join(here, 'resources', 'record.png'))
         label.set_text('Start ')
+
+        # can't see projectbox child in glade, so need to connect signal here
         self.projectbox.get_child().connect('changed',
                                             self.on_projectbox_entry_changed)
 
-    def entrytree_init(self):
-        self.entrytree = self.wtree.get_widget('entrytree')
-        entrytree = self.entrytree
-        entrytree.set_rules_hint(True)
-        self.store = gtk.ListStore(gobject.TYPE_INT,    # time.time() date
-                                   gobject.TYPE_STRING, # date repr
-                                   gobject.TYPE_INT,    # int seconds
-                                   gobject.TYPE_STRING, # repr in minutes
-                                   gobject.TYPE_STRING  # notes
-                                   )
-        self.store.set_sort_column_id(0, gtk.SORT_DESCENDING)
-        entrytree.set_model(self.store)
-
-        col = gtk.TreeViewColumn('Date', gtk.CellRendererText(), text=1)
-        col.set_sort_column_id(0)
-        col.set_resizable(True)
-        entrytree.append_column(col)
-
-        col = gtk.TreeViewColumn('Time', gtk.CellRendererText(), text=3)
-        col.set_sort_column_id(2)
-        col.set_resizable(True)
-        entrytree.append_column(col)
-
-        col = gtk.TreeViewColumn('Notes', gtk.CellRendererText(), text=4)
-        col.set_sort_column_id(4)
-        col.set_resizable(True)
-        entrytree.append_column(col)
-
-        entrytree.set_property('headers-visible', True)
-        projectbox = self.wtree.get_widget('projectbox')
-        self.refresh_entrytree(self.store, projectbox.get_child())
-
-    def nag_init(self):
+        self.projectbox.set_active(0)
         self.nagging = False
         self.last_nag_time = time.time()
         self.nag_interval = 1800 # 30 minutes
-        self.nag_id = gobject.timeout_add(
-            1000, self.maybe_nag, self.wtree.get_widget('main')
-            )
-
-
-    # signal handlers
+        self.nag_id = gobject.timeout_add(1000, self.nag_cb)
 
     def on_main_destroy(self, *args):
         self.root.save()
@@ -125,9 +77,7 @@ class GUI(object):
             pixbufanim = gtk.gdk.PixbufAnimation(anim)
             image.set_from_animation(pixbufanim)
             #image.set_from_file(os.path.join(here, 'resources', 'stop.png'))
-            self.source_id = gobject.timeout_add(
-                100, self.refresh_gobutton, widget
-                )
+            self.source_id = gobject.timeout_add(100, self.gobutton_refresh_cb)
         else:
             if not projectname:
                 return
@@ -146,53 +96,23 @@ class GUI(object):
             self.root.save()
             notesbox.set_buffer(gtk.TextBuffer())
             self.start_time = None
-            self.refresh_projectbox(projectbox)
+            self.refresh_projectbox()
             alignment = widget.get_children()[0]
             hbox = alignment.get_children()[0]
             image, label = hbox.get_children()
             image.set_from_file(os.path.join(here, 'resources', 'record.png'))
             label.set_text('Start ')
         self.change_status('')
-        self.refresh_entrytree(self.store, self.projectbox.get_child())
-
-    def on_entrytree_row_activated(self, *args):
-        self.display_entry_edit_window()
-
-    def on_entrytree_button_press_event(self, view, event):
-        if event.button != 3:
-            # right button
-            return
-        popup = self.wtree.get_widget('entry_rightclick_popup')
-        popup.popup(None, None, None, event.button, event.time)
-
-    def on_edit_entry_activate(self, *args):
-        self.display_entry_edit_window()
-
-    def on_entry_delete_activate(self, menuitem):
-        store, iter = self.entrytree.get_selection().get_selected()
-        time = store.get_value(iter, 0)
-        projectname = self.projectbox.get_child().get_text().strip()
-        project = self.root.get(projectname)
-        if not project:
-            return
-        n = 0
-        for entry in project.get_entries():
-            if time == entry.begin:
-                project.remove_entry(n)
-            n+=1
-        store.remove(iter)
-        self.root.save()
+        self.entrytree_widget.refresh(projectname)
 
     def on_projectbox_entry_changed(self, entrybox):
-        text = entrybox.get_text()
-        if self.root.get(text) and self.store is not None:
-            self.refresh_entrytree(self.store, entrybox)
+        projectname = entrybox.get_text().strip()
+        if self.root.get(projectname):
+            self.entrytree_widget.refresh(projectname)
 
     def on_projectbox_changed(self, projectbox):
-        if self.store is not None:
-            entrybox = projectbox.get_child()
-            if self.root.get(entrybox.get_text()):
-                self.refresh_entrytree(self.store, entrybox)
+        entrybox = projectbox.get_child()
+        return self.on_projectbox_entry_changed(entrybox)
 
     def on_projectbox_editing_done(self, *args):
         print args
@@ -218,7 +138,7 @@ class GUI(object):
         elif result == gtk.RESPONSE_ACCEPT:
             self.root.remove(projectname)
             self.root.save()
-            self.refresh_projectbox(projectbox)
+            self.refresh_projectbox()
         dia.destroy()
 
     def on_notesbox_key_press_event(self, *args):
@@ -240,50 +160,31 @@ class GUI(object):
         dialog.run()
         dialog.destroy()
 
-    def on_entry_edit_delete_event(self, *args):
-        self.hide_entry_edit_window()
-        return True # dont allow the entry window to be destroyed
+    # callbacks
 
-    def on_entry_edit_cancel_clicked(self, *args):
-        self.hide_entry_edit_window()
-
-    def on_entry_edit_apply_clicked(self, *args):
-        datebox = self.wtree.get_widget('date_edit_box')
-        minutebox = self.wtree.get_widget('minutes_edit_box')
-        notesbox   = self.wtree.get_widget('notes_edit_box')
-        begin = int(datebox.get_time())
-        seconds = int(minutebox.get_value() * 60)
-        buffer = notesbox.get_buffer()
-        start, end = buffer.get_bounds()
-        text = buffer.get_text(start, end)
-        store, iter = self.entrytree.get_selection().get_selected()
-        oldbegin = store.get_value(iter, 0)
-        projectname = self.projectbox.get_child().get_text().strip()
-        project = self.root.get(projectname)
-        if not project:
-            return
-        n = 0
-        for entry in project.get_entries():
-            if oldbegin == entry.begin:
-                entry.begin = begin
-                entry.end = begin + seconds
-                entry.set_notes(text)
-            n+=1
-        self.root.save()
-        self.hide_entry_edit_window()
-        self.refresh_entrytree(self.store, self.projectbox.get_child())
-
-    # utility methods
-
-    def refresh_gobutton(self, widget):
-        alignment = widget.get_children()[0]
+    def gobutton_refresh_cb(self):
+        alignment = self.gobutton.get_children()[0]
         hbox = alignment.get_children()[0]
         image, label = hbox.get_children()
         if self.start_time:
             label.set_text(minutes_repr(time.time() - self.start_time))
+        # must return True to reschedule
         return True
         
-    def refresh_projectbox(self, projectbox):
+    def nag_cb(self):
+        window = self.window
+        if self.last_nag_time + self.nag_interval < time.time():
+            print "nagging"
+            self.nagging = True
+            self.last_nag_time = time.time()
+            self.change_status('Nagging')
+            window.present()
+        return True
+
+    # utility methods
+
+    def refresh_projectbox(self):
+        projectbox = self.projectbox
         active = projectbox.get_active()
         listlen = len(projectbox.get_model())
 
@@ -306,18 +207,61 @@ class GUI(object):
         numprojects = len(projectnames)
 
         if active > numprojects:
-            projectbox.set_active(0)
+            active = 0
 
         if not numprojects:
             projectbox.get_child().set_text('')
-            if self.store is not None:
-                self.store.clear()
+            self.entrytree_widget.clear()
 
         projectbox.set_active(active)
 
-    def refresh_entrytree(self, store, projectentry):
-        store.clear()
-        projectname = projectentry.get_text().strip()
+    def change_status(self, status):
+        appbar = self.wtree.get_widget('appbar1')
+        statusframe = appbar.get_children()[1]
+        label = statusframe.get_children()[0]
+        label.set_text(status)
+
+class EntryTree(object):
+    def __init__(self, wtree, root):
+        self.wtree = wtree
+        self.root = root
+        self.projectbox = self.wtree.get_widget('projectbox')
+        self.entrytree = self.wtree.get_widget('entrytree')
+        self.entrytree.set_rules_hint(True)
+        self.store = gtk.ListStore(gobject.TYPE_INT,    # time.time() date
+                                   gobject.TYPE_STRING, # date repr
+                                   gobject.TYPE_INT,    # int seconds
+                                   gobject.TYPE_STRING, # repr in minutes
+                                   gobject.TYPE_STRING  # notes
+                                   )
+        self.store.set_sort_column_id(0, gtk.SORT_DESCENDING)
+        self.entrytree.set_model(self.store)
+
+        col = gtk.TreeViewColumn('Date', gtk.CellRendererText(), text=1)
+        col.set_sort_column_id(0)
+        col.set_resizable(True)
+        self.entrytree.append_column(col)
+
+        col = gtk.TreeViewColumn('Time', gtk.CellRendererText(), text=3)
+        col.set_sort_column_id(2)
+        col.set_resizable(True)
+        self.entrytree.append_column(col)
+
+        col = gtk.TreeViewColumn('Notes', gtk.CellRendererText(), text=4)
+        col.set_sort_column_id(4)
+        col.set_resizable(True)
+        self.entrytree.append_column(col)
+
+        self.entrytree.set_property('headers-visible', True)
+        projectbox = self.wtree.get_widget('projectbox')
+        self.editwindow = EntryEditWindow(self)
+        init_signals(self, self.wtree.signal_autoconnect)
+
+    def clear(self):
+        self.store.clear()
+
+    def refresh(self, projectname):
+        self.store.clear()
         if not projectname:
             return
         project = self.root.get_or_create(projectname)
@@ -325,52 +269,116 @@ class GUI(object):
             begin = int(entry.begin)
             duration = int(entry.end - entry.begin)
             iter = self.store.append()
-            store.set_value(iter, 0, entry.begin)
-            store.set_value(iter, 1, time.strftime(ISO, time.localtime(begin)))
-            store.set_value(iter, 2, duration)
-            store.set_value(iter, 3, minutes_repr(duration))
-            store.set_value(iter, 4, entry.notes)
+            self.store.set_value(iter, 0, entry.begin)
+            self.store.set_value(iter, 1, time.strftime(ISO,
+                                                        time.localtime(begin)))
+            self.store.set_value(iter, 2, duration)
+            self.store.set_value(iter, 3, minutes_repr(duration))
+            self.store.set_value(iter, 4, entry.notes)
 
-    def display_entry_edit_window(self):
+    def on_entrytree_button_press_event(self, view, event):
+        if event.button != 3:
+            # right button
+            return
+        popup = self.wtree.get_widget('entry_rightclick_popup')
+        popup.popup(None, None, None, event.button, event.time)
+
+    def on_edit_entry_activate(self, *args):
+        self.editwindow.display()
+
+    def on_entry_delete_activate(self, menuitem):
+        store, iter = self.entrytree.get_selection().get_selected()
+        time = store.get_value(iter, 0)
+        projectname = self.projectbox.get_child().get_text().strip()
+        project = self.root.get(projectname)
+        if not project:
+            return
+        n = 0
+        for entry in project.get_entries():
+            if time == entry.begin:
+                project.remove_entry(n)
+            n+=1
+        store.remove(iter)
+        self.root.save()
+
+    def on_entrytree_row_activated(self, *args):
+        self.editwindow.display()
+
+class EntryEditWindow(object):
+    def __init__(self, parent):
+        self.wtree = parent.wtree
+        self.root = parent.root
+        self.store = parent.store
+        self.entrytree = parent.entrytree
+        self.projectbox = parent.projectbox
+        self.parent = parent
+        self.window = self.wtree.get_widget('entry_edit')
+        self.datebox = self.wtree.get_widget('date_edit_box')
+        self.minutebox = self.wtree.get_widget('minutes_edit_box')
+        self.notesbox   = self.wtree.get_widget('notes_edit_box')
+        init_signals(self, self.wtree.signal_autoconnect)
+    
+    def display(self):
         store, iter = self.entrytree.get_selection().get_selected()
         start = store.get_value(iter, 0)
         minutes = store.get_value(iter, 2) / 60
         notes = store.get_value(iter, 4)
-        entry_edit = self.wtree.get_widget('entry_edit')
-        startdate_widget = self.wtree.get_widget('date_edit_box')
-        startdate_widget.set_time(start)
-        minutes_widget = self.wtree.get_widget('minutes_edit_box')
-        minutes_widget.set_value(minutes)
-        notes_widget = self.wtree.get_widget('notes_edit_box')
-        notes_widget.get_buffer().set_text(notes)
-        entry_edit.set_transient_for(self.entrytree.get_toplevel())
-        entry_edit.show_all()
+        self.datebox.set_time(start)
+        self.minutebox.set_value(minutes)
+        self.notesbox.get_buffer().set_text(notes)
+        self.window.set_transient_for(self.entrytree.get_toplevel())
+        self.window.show_all()
 
-    def hide_entry_edit_window(self):
-        entry_edit = self.wtree.get_widget('entry_edit')
-        entry_edit.hide()
+    def hide(self):
+        self.window.hide()
 
-    def maybe_nag(self, window):
-        if self.last_nag_time + self.nag_interval < time.time():
-            print "nagging"
-            self.nagging = True
-            self.last_nag_time = time.time()
-            self.change_status('Nagging')
-            window.present()
-        return True
+    def on_entry_edit_cancel_clicked(self, *args):
+        self.hide()
 
-    def change_status(self, status):
-        appbar = self.wtree.get_widget('appbar1')
-        statusframe = appbar.get_children()[1]
-        label = statusframe.get_children()[0]
-        label.set_text(status)
-        
+    def on_entry_edit_apply_clicked(self, *args):
+        begin = int(self.datebox.get_time())
+        seconds = int(self.minutebox.get_value() * 60)
+        buffer = self.notesbox.get_buffer()
+        start, end = buffer.get_bounds()
+        text = buffer.get_text(start, end)
+        store, iter = self.entrytree.get_selection().get_selected()
+        oldbegin = self.store.get_value(iter, 0)
+        projectname = self.projectbox.get_child().get_text().strip()
+        project = self.root.get(projectname)
+
+        if not project:
+            return 
+
+        n = 0
+        for entry in project.get_entries():
+            if oldbegin == entry.begin:
+                entry.begin = begin
+                entry.end = begin + seconds
+                entry.set_notes(text)
+            n+=1
+
+        self.root.save()
+        self.hide()
+        self.parent.refresh(projectname)
+
+    def on_entry_edit_delete_event(self, *args):
+        self.hide()
+        return True # dont allow this window to be destroyed
 
 def minutes_repr(seconds):
     minutes = seconds / 60
     hours = minutes / 60
     minutes = minutes - (hours * 60)
     return '%02d:%02d' % (hours, minutes)
+
+def init_signals(instance, cb):
+    dict = {}
+    for k in instance.__class__.__dict__:
+        if k.startswith('on_'):
+            dict[k] = getattr(instance, k)
+    cb(dict)
+
+# persistent objects
 
 class Root(object):
     options = None
@@ -391,10 +399,8 @@ class Root(object):
         return self.projects[projectname]
 
     def get_projectnames(self):
-        def lower(a,b):
-            return cmp(a.lower(), b.lower())
         names = self.projects.keys()
-        names.sort(lower)
+        names.sort(lambda a, b: cmp(a.lower(), b.lower()))
         return names
 
     def add(self, projectname):
@@ -453,7 +459,7 @@ class Entry(object):
             self.begin = when
 
 if __name__ == '__main__':
-    app = GUI()
+    app = MainWindow()
     try:
         gtk.main()
     except KeyboardInterrupt:
