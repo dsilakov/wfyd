@@ -1,18 +1,17 @@
 Tooltips for elided notes in the treeview.
   See http://www.daa.com.au/pipermail/pygtk/2004-February/006954.html
 
-Nag interval configuration.
-
-Better behavior when projects are deleted (sometimes store isn't
-cleared and old projectname remains in projectbar).
-
 Add entries manually.
 
 Cut and paste entries.
+
+Drag-select multiple entries for deletion.
 
 Round up to the nearest minute in entries.
 
 Filter entries in treeview.
 
 Search entries.
+
+Use a database instead of a big pickle.
 

@@ -46,6 +46,7 @@ class MainWindow(object):
         self.start_time = None
         init_signals(self, self.wtree.signal_autoconnect)
         self.entrytree_widget = EntryTree(self.wtree, self.root)
+        self.preferences = PreferencesWindow(self.wtree, self.root)
         self.projectbox = self.wtree.get_widget('projectbox')
         self.gobutton = self.wtree.get_widget('gobutton')
         self.gobutton_set_add()
@@ -58,7 +59,7 @@ class MainWindow(object):
         self.projectbox.set_active(0)
         self.nagging = False
         self.last_nag_time = time.time()
-        self.nag_interval = 1800 # 30 minutes
+        self.nag_interval = self.root.get_option('nag_interval', 0)
         self.nag_id = gobject.timeout_add(1000, self.nag_cb)
 
     def on_main_destroy(self, *args):
@@ -195,6 +196,9 @@ class MainWindow(object):
         dialog.run()
         dialog.destroy()
 
+    def on_preferences1_activate(self, *args):
+        self.preferences.display()
+
     # callbacks
 
     def gobutton_refresh_cb(self):
@@ -208,8 +212,9 @@ class MainWindow(object):
         
     def nag_cb(self):
         window = self.window
+        if not self.nag_interval:
+            return
         if self.last_nag_time + self.nag_interval < time.time():
-            print "nagging"
             self.nagging = True
             self.last_nag_time = time.time()
             self.change_status('Nagging')
@@ -400,6 +405,34 @@ class EntryEditWindow(object):
         self.hide()
         return True # dont allow this window to be destroyed
 
+class PreferencesWindow(object):
+    def __init__(self, wtree, root):
+        self.wtree = wtree
+        self.root = root
+        self.window = self.wtree.get_widget('prefs')
+        self.nag_interval = self.wtree.get_widget('nag_interval')
+        init_signals(self, self.wtree.signal_autoconnect)
+
+    def display(self):
+        self.nag_interval.set_value(self.root.get_option('nag_interval', 0))
+        self.window.set_transient_for(self.wtree.get_widget('main'))
+        self.window.show_all()
+
+    def hide(self):
+        self.window.hide()
+
+    def on_prefs_ok_clicked(self, *args):
+        self.root.set_option('nag_interval', self.nag_interval.get_value())
+        self.root.save()
+        self.hide()
+
+    def on_prefs_cancel_clicked(self, *args):
+        self.hide()
+
+    def on_prefs_delete_event(self, *args):
+        self.hide()
+        return True # dont allow this window to be destroyed
+
 def minutes_repr(seconds):
     minutes = seconds / 60
     hours = minutes / 60
@@ -452,7 +485,9 @@ class Root(object):
         if self.options is None:
             self.options = {}
         self.options[name] = value
-        self.root.save()
+
+    def get_option(self, name, default):
+        return self.options.get(name, default)
 
 class Project(object):
     def __init__(self, name):
