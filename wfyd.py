@@ -199,6 +199,13 @@ class MainWindow(object):
     def on_preferences1_activate(self, *args):
         self.preferences.display()
 
+    def on_contents1_activate(self, *args):
+        # frameworkitis has consumed the help system api, so let's avoid that
+        # by calling yelp directly
+        helpfile = os.path.join(here, 'doc', 'wfyd.xml')
+        print os.spawnvpe(os.P_NOWAIT, '/usr/bin/yelp', ['yelp', helpfile],
+                          os.environ)
+
     # callbacks
 
     def gobutton_refresh_cb(self):

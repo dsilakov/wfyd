@@ -1,0 +1,195 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN" 
+"http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd" [
+<!ENTITY version "1.4">
+]>
+
+<article id="index" lang="en"> <!-- please do not change the id-->
+
+  <articleinfo> 
+    <title>WFYD Manual</title>
+    <copyright>
+      <year>2005</year>
+      <holder>Chris McDonough</holder>
+    </copyright>
+
+    <legalnotice id="legalnotice">
+
+      <para>Permission is granted to copy, distribute and/or modify
+      this document under the terms of the <ulink type="help"
+      url="ghelp:fdl"><citetitle>GNU Free Documentation
+      License</citetitle></ulink>, Version 1.1 or any later version
+      published by the Free Software Foundation with no Invariant
+      Sections, no Front-Cover Texts, and no Back-Cover Texts.  A copy
+      of the license can be found <ulink type="help"
+      url="ghelp:fdl">here</ulink>.
+      </para>
+
+      <para>Many of the names used by companies to distinguish their
+      products and services are claimed as trademarks. Where those
+      names appear in any GNOME documentation, and those trademarks
+      are made aware to the members of the GNOME Documentation
+      Project, the names have been printed in caps or initial caps.
+      </para>
+
+    </legalnotice>
+
+    <releaseinfo> 
+         This is version 0.1 of the WFYD manual.
+     </releaseinfo> 
+<!-- this is version of manual, not application --> 
+  </articleinfo>
+
+<!-- =============Document Body ============================= -->
+
+
+
+<!-- =============Introduction ============================= -->
+  <sect1 id="introduction">
+      <title>Introduction</title> 
+    <sect2 id="whatis">
+    <title>What is WFYD?</title>
+    <para>
+      <application>WFYD</application> 
+      is a simple application that may be used to keep track of time
+      spent on projects.  It is meant to be as simple and feature-free
+      as possible.
+    </para>
+    <para>
+     Features include:
+     <itemizedlist>
+        <listitem>
+          <para>
+    <emphasis>Creating Projects</emphasis>
+          Projects are names.  A project contains one or more "entries".
+          </para> 
+        </listitem>
+
+        <listitem>
+          <para>
+    <emphasis>Creating Entries</emphasis>
+
+           Entries are line items associated with a project.  An entry
+           consists of a start time, an amount of time spent, and a
+           series of notes describing what happened during this
+           period.
+
+          </para> 
+        </listitem>
+
+        <listitem>
+          <para>
+    <emphasis>Nag</emphasis>
+        WFYD can be configured to nag you on a scheduled basis to make
+        a new entry or stop the current entry timer.
+          </para> 
+        </listitem>
+
+    </itemizedlist>
+
+    </para>
+  </sect2>
+</sect1>
+
+
+<sect1 id="usage"> 
+   <title>Using WFYD</title>
+   <sect2 id="working">
+      <title>Working with WFYD</title>
+
+<para>
+        When you first start <application>WFYD</application>, you see
+        the <interface>Main window</interface>, as shown in 
+  <xref linkend="mainwindowfig"/>.
+<!-- ==============Figure=================================== -->
+        <figure id="mainwindowfig" xreflabel="WFYD Main Window">
+          <title>WFYD Main Window</title>
+          <screenshot>
+            <screeninfo>WFYD main window, with no projects created</screeninfo>
+      <graphic fileref="figures/wfyd-main.png" />
+          </screenshot>
+        </figure>
+<!-- ==============End of Figure=================================== -->
+</para>      
+
+
+      <para>
+      The main window consists of five areas. There is a menu bar at
+      the top of the window, a project list and a set of buttons below
+      the menu bar, a notes entry window, and an entry list for the
+      currently selected project.  There is also a status bar at the
+      bottom of the window.
+</para>
+
+<para>
+
+      When you start <application>WFYD</application> for the first
+      time, the project list, the notes entry window, and the entry
+      list will be empty.
+</para>
+
+<para>      You cannot add an entry unless a project is selected.
+
+      Add a new project by typing its name into the project list entry box.
+</para>
+<para>
+
+
+      To start an entry that will be applied to the currently selected
+      project, click the <guibutton>Add</guibutton> button near the top
+      left of the main window.  When you do so, the button will display
+      the current time spent on this entry in minutes.  Clicking the button
+      again will stop the timer and add the entry to the entry list for
+      the currently selected project.
+</para>
+
+<para>
+      Notes typed into the notes field will be entered into the entry
+      when the entry has been completed.
+
+      You can also start a new entry by typing into the notes box.
+
+      You can end an entry by pressing ctrl-G instead of clicking on the <guibutton>Add</guibutton> button.
+</para>
+
+<para>
+      The data related to this program is kept in a file in
+      <filename>~/.wfyd.dat</filename>.
+
+   </para>
+
+</sect2>
+
+</sect1>
+
+<!-- =============Authors Section============================= -->
+
+  <sect1 id="authors">
+    <title>Authors</title>
+    <para>
+       <application>WFYD</application> was written by Chris McDonough.
+    </para>
+    <para>
+      Please submit all comments, suggestions, and bug reports 
+      on the  
+      <ulink url="http://www.plope.com/software/wfyd/">Project site</ulink>
+    </para>
+</sect1>
+
+
+</article>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
