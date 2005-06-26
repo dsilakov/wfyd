@@ -41,6 +41,8 @@ class MainWindow(object):
         self.wtree = gtk.glade.XML('wfyd.glade')
         self.window = self.wtree.get_widget('main')
         gnome.ui.window_icon_set_from_default(self.window)
+        self.window.set_icon_from_file(os.path.join(here, 'resources',
+                                                    'wfyd.png'))
         self.start_time = None
         init_signals(self, self.wtree.signal_autoconnect)
         self.entrytree_widget = EntryTree(self.wtree, self.root)
