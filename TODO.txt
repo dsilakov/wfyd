@@ -5,3 +5,14 @@ Nag interval configuration.
 
 Better behavior when projects are deleted (sometimes store isn't
 cleared and old projectname remains in projectbar).
+
+Add entries manually.
+
+Cut and paste entries.
+
+Round up to the nearest minute in entries.
+
+Filter entries in treeview.
+
+Search entries.
+

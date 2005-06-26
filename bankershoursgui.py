@@ -107,23 +107,35 @@ class GUI(object):
         gtk.main_quit()
 
     def on_gobutton_toggled(self, widget):
+        projectbox = self.wtree.get_widget('projectbox')
+        projectname = projectbox.get_child().get_text().strip()
+
         if widget.get_active():
+            if not projectname:
+                widget.set_active(False)
+                self.change_status('You must choose or create a project in '
+                                   'the dropdown to start an entry.')
+                return
+            self.change_status('')
             self.start_time = int(time.time())
             alignment = widget.get_children()[0]
             hbox = alignment.get_children()[0]
             image, label = hbox.get_children()
-            image.set_from_file(os.path.join(here, 'resources', 'stop.png'))
+            anim = os.path.join(here, 'resources', 'smallgears.gif')
+            pixbufanim = gtk.gdk.PixbufAnimation(anim)
+            image.set_from_animation(pixbufanim)
+            #image.set_from_file(os.path.join(here, 'resources', 'stop.png'))
             self.source_id = gobject.timeout_add(
                 100, self.refresh_gobutton, widget
                 )
         else:
+            if not projectname:
+                return
             assert self.start_time is not None
             gobject.source_remove(self.source_id)
             self.source_id = None
             end_time = time.time()
             seconds = int((end_time - self.start_time))
-            projectbox = self.wtree.get_widget('projectbox')
-            projectname = projectbox.get_child().get_text()
             notesbox = self.wtree.get_widget('notesbox')
             buffer = notesbox.get_buffer()
             start, end = buffer.get_bounds()
@@ -131,9 +143,9 @@ class GUI(object):
             project = self.root.get_or_create(projectname)
             project.add_entry(self.start_time, self.start_time + seconds,
                               text)
+            self.root.save()
             notesbox.set_buffer(gtk.TextBuffer())
             self.start_time = None
-            self.root.save()
             self.refresh_projectbox(projectbox)
             alignment = widget.get_children()[0]
             hbox = alignment.get_children()[0]
