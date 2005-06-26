@@ -24,7 +24,7 @@ import sys
 
 here = os.path.abspath(os.path.split(__file__)[0])
 
-VERSION = '0.1'
+VERSION = '0.2'
 AUTHORS = ['Chris McDonough (chrism@plope.com)']
 WEBSITE = 'http://www.plope.com/software/wfyd'
 
@@ -59,7 +59,6 @@ class MainWindow(object):
         self.projectbox.set_active(0)
         self.nagging = False
         self.last_nag_time = time.time()
-        self.nag_interval = self.root.get_option('nag_interval', 0)
         self.nag_id = gobject.timeout_add(1000, self.nag_cb)
 
     def on_main_destroy(self, *args):
@@ -219,9 +218,10 @@ class MainWindow(object):
         
     def nag_cb(self):
         window = self.window
-        if not self.nag_interval:
+        nag_interval = self.root.get_option('nag_interval', None)
+        if not nag_interval:
             return
-        if self.last_nag_time + self.nag_interval < time.time():
+        if self.last_nag_time + (nag_interval * 60) < time.time():
             self.nagging = True
             self.last_nag_time = time.time()
             self.change_status('Nagging')
