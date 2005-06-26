@@ -16,7 +16,7 @@ VERSION = '0.1'
 AUTHORS = ['Chris McDonough (chrism@plope.com)']
 COPYRIGHT = AUTHORS[0]
 
-datafile = os.path.expanduser('~/.bankershours.dat')
+datafile = os.path.expanduser('~/.wfyd.dat')
 
 ISO = "%Y-%m-%d %H:%M:%S"
 
@@ -29,8 +29,8 @@ class GUI(object):
             self.root = pickle.load(open(datafile))
         else:
             self.root = Root()
-        gnome.init('bankershours', VERSION)
-        self.wtree = gtk.glade.XML('bankershours.glade')
+        gnome.init('WFYD', VERSION)
+        self.wtree = gtk.glade.XML('wfyd.glade')
         window = self.wtree.get_widget('main')
         gnome.ui.window_icon_set_from_default(window)
         self.start_time = None
@@ -171,7 +171,7 @@ class GUI(object):
     def on_entry_delete_activate(self, menuitem):
         store, iter = self.entrytree.get_selection().get_selected()
         time = store.get_value(iter, 0)
-        projectname = self.projectbox.get_child().get_text()
+        projectname = self.projectbox.get_child().get_text().strip()
         project = self.root.get(projectname)
         if not project:
             return
@@ -199,7 +199,7 @@ class GUI(object):
 
     def on_deleteprojectbutton_clicked(self, button):
         projectbox = self.wtree.get_widget('projectbox')
-        projectname = projectbox.get_child().get_text()
+        projectname = projectbox.get_child().get_text().strip()
         if not projectname:
             return
         window = button.get_toplevel()
@@ -216,10 +216,7 @@ class GUI(object):
         if result in (gtk.RESPONSE_CLOSE, gtk.RESPONSE_REJECT):
             pass
         elif result == gtk.RESPONSE_ACCEPT:
-            try:
-                self.root.remove(projectname)
-            except KeyError:
-                pass
+            self.root.remove(projectname)
             self.root.save()
             self.refresh_projectbox(projectbox)
         dia.destroy()
@@ -261,7 +258,7 @@ class GUI(object):
         text = buffer.get_text(start, end)
         store, iter = self.entrytree.get_selection().get_selected()
         oldbegin = store.get_value(iter, 0)
-        projectname = self.projectbox.get_child().get_text()
+        projectname = self.projectbox.get_child().get_text().strip()
         project = self.root.get(projectname)
         if not project:
             return
@@ -320,7 +317,7 @@ class GUI(object):
 
     def refresh_entrytree(self, store, projectentry):
         store.clear()
-        projectname = projectentry.get_text()
+        projectname = projectentry.get_text().strip()
         if not projectname:
             return
         project = self.root.get_or_create(projectname)
@@ -406,8 +403,6 @@ class Root(object):
     def remove(self, projectname):
         if self.projects.get(projectname) is not None:
             del self.projects[projectname]
-            if self.projectname == projectname:
-                self.projectname = None
 
     def save(self):
         pickle.dump(self, open(datafile, 'w'))

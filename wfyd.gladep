@@ -2,6 +2,6 @@
 <!DOCTYPE glade-project SYSTEM "http://glade.gnome.org/glade-project-2.0.dtd">
 
 <glade-project>
-  <name>Bankershours</name>
-  <program_name>bankershours</program_name>
+  <name>WFYD</name>
+  <program_name>wfyd</program_name>
 </glade-project>
