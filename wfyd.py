@@ -1,4 +1,15 @@
 #!/usr/bin/python
+COPYRIGHT = """Copyright (c) 2005 Chris McDonough and Contributors.
+All Rights Reserved."""
+
+LICENSE = """\
+This software is subject to the provisions of the Zope Public License,
+Version 2.1 (ZPL).  A copy of the ZPL should accompany this distribution.
+THIS SOFTWARE IS PROVIDED "AS IS" AND ANY AND ALL EXPRESS OR IMPLIED
+WARRANTIES ARE DISCLAIMED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF TITLE, MERCHANTABILITY, AGAINST INFRINGEMENT, AND FITNESS
+FOR A PARTICULAR PURPOSE."""
+
 import pygtk
 pygtk.require('2.0')
 import gtk
@@ -9,20 +20,19 @@ import gobject
 import time
 import os
 import pickle
+import sys
 
 here = os.path.abspath(os.path.split(__file__)[0])
 
 VERSION = '0.1'
 AUTHORS = ['Chris McDonough (chrism@plope.com)']
-COPYRIGHT = AUTHORS[0]
-
-datafile = os.path.expanduser('~/.wfyd.dat')
+WEBSITE = 'http://www.plope.com/software/wfyd'
 
 ISO = "%Y-%m-%d %H:%M:%S"
 
 class MainWindow(object):
     
-    def __init__(self):
+    def __init__(self, datafile):
         if os.path.exists(datafile):
             self.root = pickle.load(open(datafile))
         else:
@@ -36,13 +46,8 @@ class MainWindow(object):
         self.entrytree_widget = EntryTree(self.wtree, self.root)
         self.projectbox = self.wtree.get_widget('projectbox')
         self.gobutton = self.wtree.get_widget('gobutton')
+        self.gobutton_set_add()
         self.refresh_projectbox()
-        widget = self.wtree.get_widget('gobutton')
-        alignment = widget.get_children()[0]
-        hbox = alignment.get_children()[0]
-        image, label = hbox.get_children()
-        image.set_from_file(os.path.join(here, 'resources', 'record.png'))
-        label.set_text('Start ')
 
         # can't see projectbox child in glade, so need to connect signal here
         self.projectbox.get_child().connect('changed',
@@ -58,6 +63,41 @@ class MainWindow(object):
         self.root.save()
         gtk.main_quit()
 
+    def gobutton_set_add(self):
+        widget = self.gobutton
+        alignment = widget.get_children()[0]
+        hbox = alignment.get_children()[0]
+        image, label = hbox.get_children()
+        #image.set_from_file(os.path.join(here, 'resources', 'record.png'))
+
+        image.set_from_stock(gtk.STOCK_ADD, gtk.ICON_SIZE_BUTTON)
+        label.set_text('Add   ')
+        # cold do something like this instead but above is easier
+        #icon_theme = gtk.icon_theme_get_default()
+        #pixbuf = icon_theme.load_icon('Add', 24, 0)
+        #image.set_from_pixbuf(pixbuf)
+
+    def gobutton_set_stop(self):
+        widget = self.gobutton
+        alignment = widget.get_children()[0]
+        hbox = alignment.get_children()[0]
+        image, label = hbox.get_children()
+        #image.set_from_file(os.path.join(here, 'resources', 'record.png'))
+
+        image.set_from_stock(gtk.STOCK_STOP, gtk.ICON_SIZE_BUTTON)
+        label.set_text('Stop  ')
+        # cold do something like this instead but above is easier
+        #icon_theme = gtk.icon_theme_get_default()
+        #pixbuf = icon_theme.load_icon('Add', 24, 0)
+        #image.set_from_pixbuf(pixbuf)
+
+        # or an animation
+        #anim = os.path.join(here, 'resources', 'smallgears.gif')
+        #pixbufanim = gtk.gdk.PixbufAnimation(anim)
+        #image.set_from_animation(pixbufanim)
+        #image.set_from_file(os.path.join(here, 'resources', 'stop.png'))
+
+
     def on_gobutton_toggled(self, widget):
         projectbox = self.wtree.get_widget('projectbox')
         projectname = projectbox.get_child().get_text().strip()
@@ -70,13 +110,7 @@ class MainWindow(object):
                 return
             self.change_status('')
             self.start_time = int(time.time())
-            alignment = widget.get_children()[0]
-            hbox = alignment.get_children()[0]
-            image, label = hbox.get_children()
-            anim = os.path.join(here, 'resources', 'smallgears.gif')
-            pixbufanim = gtk.gdk.PixbufAnimation(anim)
-            image.set_from_animation(pixbufanim)
-            #image.set_from_file(os.path.join(here, 'resources', 'stop.png'))
+            self.gobutton_set_stop()
             self.source_id = gobject.timeout_add(100, self.gobutton_refresh_cb)
         else:
             if not projectname:
@@ -97,11 +131,7 @@ class MainWindow(object):
             notesbox.set_buffer(gtk.TextBuffer())
             self.start_time = None
             self.refresh_projectbox()
-            alignment = widget.get_children()[0]
-            hbox = alignment.get_children()[0]
-            image, label = hbox.get_children()
-            image.set_from_file(os.path.join(here, 'resources', 'record.png'))
-            label.set_text('Start ')
+            self.gobutton_set_add()
         self.change_status('')
         self.entrytree_widget.refresh(projectname)
 
@@ -157,6 +187,9 @@ class MainWindow(object):
         dialog.set_version(VERSION)
         dialog.set_authors(AUTHORS)
         dialog.set_copyright(COPYRIGHT)
+        dialog.set_license(LICENSE)
+        dialog.set_website(WEBSITE)
+        dialog.set_comments('A simple time tracker for GNOME')
         dialog.run()
         dialog.destroy()
 
@@ -167,7 +200,7 @@ class MainWindow(object):
         hbox = alignment.get_children()[0]
         image, label = hbox.get_children()
         if self.start_time:
-            label.set_text(minutes_repr(time.time() - self.start_time))
+            label.set_text(minutes_repr(time.time() - self.start_time)+ ' ')
         # must return True to reschedule
         return True
         
@@ -459,7 +492,11 @@ class Entry(object):
             self.begin = when
 
 if __name__ == '__main__':
-    app = MainWindow()
+    try:
+        datafile = sys.argv[1]
+    except IndexError:
+        datafile = os.path.expanduser('~/.wfyd.dat')
+    app = MainWindow(datafile)
     try:
         gtk.main()
     except KeyboardInterrupt:
