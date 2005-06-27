@@ -1,3 +1,10 @@
+Next release
+
+   Fix glade file path so wfyd can be started without chdir'ing to
+   its directory.
+
+   Add more help detail.
+
 0.2
 
    Initial release
