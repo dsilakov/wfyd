@@ -1,4 +1,4 @@
-Next release
+0.3
 
    Fix glade file path so wfyd can be started without chdir'ing to
    its directory.
@@ -7,6 +7,8 @@ Next release
 
    Make work mostly under PyGTK 2.4 (everything seems to work except
    the Help -> About dialog).
+
+   Add vCal file export.
 
 0.2
 
