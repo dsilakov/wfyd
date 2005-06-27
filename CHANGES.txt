@@ -8,6 +8,8 @@
    Make work mostly under PyGTK 2.4 (everything seems to work except
    the Help -> About dialog).
 
+   Don't automatically select the first project.
+
    Add vCal file export.
 
 0.2
