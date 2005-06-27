@@ -40,7 +40,7 @@ class MainWindow(object):
         gnome.init('WFYD', VERSION)
         self.wtree = gtk.glade.XML(os.path.join(here, 'wfyd.glade'))
         self.window = self.wtree.get_widget('main')
-        gnome.ui.window_icon_set_from_default(self.window)
+        #gnome.ui.window_icon_set_from_default(self.window)
         self.window.set_icon_from_file(os.path.join(here, 'resources',
                                                     'wfyd-32x32.png'))
         self.start_time = None
@@ -56,7 +56,7 @@ class MainWindow(object):
         self.projectbox.get_child().connect('changed',
                                             self.on_projectbox_entry_changed)
 
-        self.projectbox.set_active(0)
+        #self.projectbox.set_active(0)
         self.nagging = False
         self.last_nag_time = time.time()
         self.nag_id = gobject.timeout_add(1000, self.nag_cb)
