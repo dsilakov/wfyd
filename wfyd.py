@@ -21,6 +21,7 @@ import time
 import os
 import pickle
 import sys
+import socket
 
 here = os.path.abspath(os.path.split(__file__)[0])
 
@@ -184,6 +185,15 @@ class MainWindow(object):
         self.root.save()
         gtk.main_quit()
 
+    def on_export_to_ical1_activate(self, *args):
+        dialog = gtk.FileSelection("Export vCal file..")
+        dialog.set_filename('wfyd.vcs')
+        response = dialog.run()
+        if response == gtk.RESPONSE_OK:
+            filename = dialog.get_filename()
+            self.export_vcal(filename)
+        dialog.destroy()
+
     def on_about1_activate(self, *args):
         dialog = gtk.AboutDialog()
         dialog.set_version(VERSION)
@@ -267,6 +277,33 @@ class MainWindow(object):
         statusframe = appbar.get_children()[1]
         label = statusframe.get_children()[0]
         label.set_text(status)
+
+    def export_vcal(self, filename):
+        f = open(filename, 'w')
+        f.write("BEGIN:VCALENDAR\n")
+        f.write("PRODID:-//plope.com/NONSGML WFYD//EN\n")
+        f.write("VERSION:2.0\n")
+        idhost = socket.getfqdn()
+        dtstamp = time.strftime("%Y%m%dT%H%M%SZ", time.localtime(time.time()))
+        for projectname in self.root.get_projectnames():
+            project = self.root.get(projectname)
+            for entry in project.get_entries():
+                b = time.strftime('%Y%m%dT%H%M%S',time.localtime(entry.begin))
+                e = time.strftime('%Y%m%dT%H%M%S', time.localtime(entry.end))
+                notes = (entry.notes.replace('\\', '\\\\')
+                         .replace(';', '\\;')
+                         .replace(',', '\\,')
+                         .replace('\r', '')
+                         .replace('\n', '  '))
+                f.write("BEGIN:VEVENT\n")
+                f.write("UID:%s@%s\n" % (hash((b, e, notes)), idhost))
+                f.write("SUMMARY:[%s] %s\n" % (projectname, notes))
+                f.write("DTSTART:%s\n" % b)
+                f.write("DTEND:%s\n" % e)
+                f.write("DTSTAMP:%s\n" % dtstamp)
+                f.write("END:VEVENT\n")
+        f.write("END:VCALENDAR\n")
+        f.close()
 
 class EntryTree(object):
     def __init__(self, wtree, root):

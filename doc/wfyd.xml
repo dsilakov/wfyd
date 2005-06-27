@@ -83,6 +83,13 @@
         WFYD can be configured to nag you on a scheduled basis to make
         a new entry or stop the current entry timer.
           </para> 
+
+        <listitem>
+          <para>
+    <emphasis>Nag</emphasis>
+        WFYD can export its project/entry database to vCal for import
+        into programs like Evolution.
+          </para> 
         </listitem>
 
     </itemizedlist>
@@ -196,6 +203,15 @@ as shown in
   To delete a project (and all entries associated with that project),
   choose the <guibutton>Delete</guibutton> button next to the project
   entry box.
+
+</para>
+
+<para>
+
+  To export the project/entries database to a vCal file for import
+  into a program like <application>Evolution</application>,
+  choose the <guibutton>Export to vCal</guibutton> button in the
+  <guibutton>File</guibutton> menu and select a filename to write.
 
 </para>
 
