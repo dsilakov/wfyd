@@ -4,7 +4,7 @@
 <!ENTITY version "1.4">
 ]>
 
-<article id="index" lang="en"> <!-- please do not change the id-->
+<article id="index" lang="en">
 
   <articleinfo> 
     <title>WFYD Manual</title>
@@ -147,9 +147,56 @@
       Notes typed into the notes field will be entered into the entry
       when the entry has been completed.
 
-      You can also start a new entry by typing into the notes box.
+      You can also start a new entry by simply starting to type into
+      the notes box if the timer isn't currently running.
 
-      You can end an entry by pressing ctrl-G instead of clicking on the <guibutton>Add</guibutton> button.
+      You can end an entry by pressing ctrl-G instead of clicking on
+      the <guibutton>Add</guibutton> button.
+
+</para>
+
+<para>
+      If you've configured WFYD to with a "nag interval" (see the
+      Preferences section of this manual), the main WFYD window will
+      present itself to you every so often while you're working.
+</para>    
+
+<para>
+      To edit an existing entry, double-click on its entry field in the entry
+      list.  The <interface>Edit Entry</interface> window 
+as shown in 
+  <xref linkend="editwindowfig"/> will be displayed.
+<!-- ==============Figure=================================== -->
+        <figure id="editwindowfig" xreflabel="WFYD Edit Entry Window">
+          <title>WFYD Main Window</title>
+          <screenshot>
+            <screeninfo>WFYD main window, with no projects created</screeninfo>
+      <graphic fileref="figures/wfyd-entryedit.png" />
+          </screenshot>
+        </figure>
+<!-- ==============End of Figure=================================== -->
+</para>
+
+<para>
+
+    To delete an entry, right click on its entry field in the entry list
+    and choose <guibutton>Delete</guibutton>
+
+</para>
+
+<para>
+
+  You can change the start time, number of minutes, and the notes for an entry
+  in the <interface>Edit Entry</interface> window.
+
+</para>
+
+<para>
+
+  To delete a project (and all entries associated with that project),
+  choose the <guibutton>Delete</guibutton> button next to the project
+  entry box.
+
 </para>
 
 <para>
@@ -157,6 +204,39 @@
       <filename>~/.wfyd.dat</filename>.
 
    </para>
+
+</sect2>
+
+</sect1>
+
+<sect1 id="preferences"> 
+   <title>WFYD Preferences</title>
+   <sect2 id="preferences1">
+      <title>WFYD Preferences</title>
+
+<para>
+        When you choose the <guibutton>Preferences</guibutton> menu item
+        from the <guibutton>Edit</guibutton> menu, you will be presented with
+        the <interface>Preferences</interface>, as shown in 
+  <xref linkend="prefsfig"/>.
+<!-- ==============Figure=================================== -->
+        <figure id="prefsfig" xreflabel="WFYD Preferences">
+          <title>WFYD Preferences</title>
+          <screenshot>
+            <screeninfo>WFYD Preferences WIndow</screeninfo>
+      <graphic fileref="figures/wfyd-preferences.png" />
+          </screenshot>
+        </figure>
+<!-- ==============End of Figure=================================== -->
+</para>
+
+<para>
+
+You can change the "nag interval" here.  Setting the nag interval to a nonzero
+value will cause WFYD to present its main window to you every nag-interval
+minutes.
+
+</para>
 
 </sect2>
 
