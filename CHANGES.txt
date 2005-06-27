@@ -5,6 +5,9 @@ Next release
 
    Add more help detail.
 
+   Make work mostly under PyGTK 2.4 (everything seems to work except
+   the Help -> About dialog).
+
 0.2
 
    Initial release
