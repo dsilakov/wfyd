@@ -180,6 +180,7 @@ class MainWindow(object):
         if not gobutton.get_active():
             gobutton.set_active(True)
             self.on_gobutton_toggled(gobutton)
+        self.change_status('')
 
     def on_quit1_activate(self, *args):
         self.root.save()

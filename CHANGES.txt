@@ -1,3 +1,9 @@
+0.4
+
+   Fix invalid xml in help file.
+
+   Clear status bar when an entry begins.
+
 0.3
 
    Fix glade file path so wfyd can be started without chdir'ing to

@@ -9,9 +9,17 @@ Drag-select multiple entries for deletion.
 
 Round up to the nearest minute in entries.
 
-Filter entries in treeview.
-
 Search entries.
 
 Use a database instead of a big pickle.
+
+Billable/nonbillable flag.
+
+Add "today", "this week", "this month", "this year" "all" filters as
+buttons above entry tree window.  Or maybe iTunes-like selectors for
+project and period filters.
+
+Show total time for view in progress bar.
+
+
 
