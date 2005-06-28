@@ -9,7 +9,7 @@ Drag-select multiple entries for deletion.
 
 Round up to the nearest minute in entries.
 
-Search entries.
+Incremental search of entries.
 
 Use a database instead of a big pickle.
 
@@ -21,5 +21,6 @@ project and period filters.
 
 Show total time for view in progress bar.
 
+Add a menu item for Find in Current View.
 
 

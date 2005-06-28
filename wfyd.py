@@ -213,8 +213,8 @@ class MainWindow(object):
         # frameworkitis has consumed the help system api, so let's avoid that
         # by calling yelp directly
         helpfile = os.path.join(here, 'doc', 'wfyd.xml')
-        print os.spawnvpe(os.P_NOWAIT, '/usr/bin/yelp', ['yelp', helpfile],
-                          os.environ)
+        os.spawnvpe(os.P_NOWAIT, '/usr/bin/yelp', ['yelp', helpfile],
+                    os.environ)
 
     # callbacks
 
@@ -312,7 +312,9 @@ class EntryTree(object):
         self.root = root
         self.projectbox = self.wtree.get_widget('projectbox')
         self.entrytree = self.wtree.get_widget('entrytree')
-        self.entrytree.set_rules_hint(True)
+        self.entrytree.set_rules_hint(True) # alternating colors
+        treeselection = self.entrytree.get_selection()
+        treeselection.set_mode(gtk.SELECTION_MULTIPLE)
         self.store = gtk.ListStore(gobject.TYPE_INT,    # time.time() date
                                    gobject.TYPE_STRING, # date repr
                                    gobject.TYPE_INT,    # int seconds
@@ -338,6 +340,8 @@ class EntryTree(object):
         self.entrytree.append_column(col)
 
         self.entrytree.set_property('headers-visible', True)
+        self.entrytree.set_search_column(4)
+        self.entrytree.set_search_equal_func(self.notes_search)
         projectbox = self.wtree.get_widget('projectbox')
         self.editwindow = EntryEditWindow(self)
         init_signals(self, self.wtree.signal_autoconnect)
@@ -365,14 +369,26 @@ class EntryTree(object):
         if event.button != 3:
             # right button
             return
-        popup = self.wtree.get_widget('entry_rightclick_popup')
+        count = self.entrytree.get_selection().count_selected_rows()
+        if count < 1:
+            return True
+        elif count == 1:
+            popup = self.wtree.get_widget('entry_rightclick_popup')
+        elif count > 1:
+            popup = self.wtree.get_widget('entry_rightclick_popup_multi')
         popup.popup(None, None, None, event.button, event.time)
+        return True
 
     def on_edit_entry_activate(self, *args):
         self.editwindow.display()
 
     def on_entry_delete_activate(self, menuitem):
-        store, iter = self.entrytree.get_selection().get_selected()
+        model, paths = self.entrytree.get_selection().get_selected_rows()
+        iters = [ model.get_iter(path) for path in paths ]
+        for iter in iters:
+            self.delete_entry_row(model, iter)
+
+    def delete_entry_row(self, store, iter):
         time = store.get_value(iter, 0)
         projectname = self.projectbox.get_child().get_text().strip()
         project = self.root.get(projectname)
@@ -389,6 +405,13 @@ class EntryTree(object):
     def on_entrytree_row_activated(self, *args):
         self.editwindow.display()
 
+    def notes_search(self, model, column_num, searchstring, rowiter, d=None):
+        # this is less than ideal because it's not an incremental search
+        text = model.get_value(rowiter, column_num)
+        if text.find(searchstring) != -1:
+            return False # this means it was found
+        return True
+
 class EntryEditWindow(object):
     def __init__(self, parent):
         self.wtree = parent.wtree
@@ -404,7 +427,9 @@ class EntryEditWindow(object):
         init_signals(self, self.wtree.signal_autoconnect)
     
     def display(self):
-        store, iter = self.entrytree.get_selection().get_selected()
+        store, paths = self.entrytree.get_selection().get_selected_rows()
+        path = paths[0]
+        iter = store.get_iter(path)
         start = store.get_value(iter, 0)
         minutes = store.get_value(iter, 2) / 60
         notes = store.get_value(iter, 4)
@@ -426,7 +451,9 @@ class EntryEditWindow(object):
         buffer = self.notesbox.get_buffer()
         start, end = buffer.get_bounds()
         text = buffer.get_text(start, end)
-        store, iter = self.entrytree.get_selection().get_selected()
+        store, paths = self.entrytree.get_selection().get_selected_rows()
+        path = paths[0]
+        iter = store.get_iter(path)
         oldbegin = self.store.get_value(iter, 0)
         projectname = self.projectbox.get_child().get_text().strip()
         project = self.root.get(projectname)
@@ -490,6 +517,7 @@ def init_signals(instance, cb):
         if k.startswith('on_'):
             dict[k] = getattr(instance, k)
     cb(dict)
+
 
 # persistent objects
 

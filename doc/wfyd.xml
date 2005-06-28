@@ -189,7 +189,9 @@ as shown in
 <para>
 
     To delete an entry, right click on its entry field in the entry list
-    and choose <guibutton>Delete</guibutton>
+    and choose <guibutton>Delete</guibutton>.  You can delete multiple
+    entries by selecting them via CTRL-click on within the entry list
+    and right clicking thereafter, choosing <guibutton>Delete</guibutton>.
 
 </para>
 
@@ -207,6 +209,15 @@ as shown in
   entry box.
 
 </para>
+
+<para>
+
+  If the entry list is selected, you can type Ctrl-F to search for
+  an entry with notes related to a search string you provide.
+
+</para>
+
+
 
 <para>
 

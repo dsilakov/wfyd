@@ -4,6 +4,11 @@
 
    Clear status bar when an entry begins.
 
+   Allow multiple entries to be deleted at once.
+
+   Allow Ctrl-F to begin a search on the notes in the currently displayed
+   entries list.
+
 0.3
 
    Fix glade file path so wfyd can be started without chdir'ing to
