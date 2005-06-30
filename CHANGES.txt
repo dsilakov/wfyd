@@ -1,5 +1,9 @@
 0.4
 
+   Better spacing/padding.
+
+   Remove unused progress bar.
+
    Fix invalid xml in help file.
 
    Clear status bar when an entry begins.
