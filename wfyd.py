@@ -275,7 +275,7 @@ class MainWindow(object):
 
     def change_status(self, status):
         appbar = self.wtree.get_widget('appbar1')
-        statusframe = appbar.get_children()[1]
+        statusframe = appbar.get_children()[0]
         label = statusframe.get_children()[0]
         label.set_text(status)
 
