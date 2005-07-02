@@ -1,6 +1,7 @@
 Next
 
-   yelp binary path was incorrect on some platforms (thanks to fir2fox).
+   yelp binary path was incorrect on some platforms which meant the
+   help system didn't always work (thanks to fir2fox).
 
 0.4
 
