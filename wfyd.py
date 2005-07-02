@@ -213,8 +213,7 @@ class MainWindow(object):
         # frameworkitis has consumed the help system api, so let's avoid that
         # by calling yelp directly
         helpfile = os.path.join(here, 'doc', 'wfyd.xml')
-        os.spawnvpe(os.P_NOWAIT, '/usr/bin/yelp', ['yelp', helpfile],
-                    os.environ)
+        os.spawnvpe(os.P_NOWAIT, 'yelp', ['yelp', helpfile], os.environ)
 
     # callbacks
 
