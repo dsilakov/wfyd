@@ -1,3 +1,7 @@
+Next
+
+   yelp binary path was incorrect on some platforms (thanks to fir2fox).
+
 0.4
 
    Better spacing/padding.
