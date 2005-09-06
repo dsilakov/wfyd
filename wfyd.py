@@ -25,7 +25,7 @@ import socket
 
 here = os.path.abspath(os.path.split(__file__)[0])
 
-VERSION = '0.2'
+VERSION = '0.4'
 AUTHORS = ['Chris McDonough (chrism@plope.com)']
 WEBSITE = 'http://www.plope.com/software/wfyd'
 
