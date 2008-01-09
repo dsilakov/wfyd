@@ -1,4 +1,7 @@
-Next
+0.5
+    
+   Corrected bug which could break displaying of minutes passed on some
+   systems
 
    yelp binary path was incorrect on some platforms which meant the
    help system didn't always work (thanks to fir2fox).

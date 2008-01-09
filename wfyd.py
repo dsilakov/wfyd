@@ -1,5 +1,5 @@
 #!/usr/bin/python
-COPYRIGHT = """Copyright (c) 2005 Chris McDonough and Contributors.
+COPYRIGHT = """Copyright (c) 2005-2008 Chris McDonough, Denis Silakov and Contributors.
 All Rights Reserved."""
 
 LICENSE = """\
@@ -25,9 +25,9 @@ import socket
 
 here = os.path.abspath(os.path.split(__file__)[0])
 
-VERSION = '0.4'
-AUTHORS = ['Chris McDonough (chrism@plope.com)']
-WEBSITE = 'http://www.plope.com/software/wfyd'
+VERSION = '0.5'
+AUTHORS = ['Chris McDonough (chrism@plope.com)','Denis Silakov (d_uragan@rambler.ru)']
+WEBSITE = 'http:///wfyd.sourceforge.net'
 
 ISO = "%Y-%m-%d %H:%M:%S"
 
@@ -506,7 +506,7 @@ class PreferencesWindow(object):
 
 def minutes_repr(seconds):
     minutes = seconds / 60
-    hours = minutes / 60
+    hours = int(minutes / 60)
     minutes = minutes - (hours * 60)
     return '%02d:%02d' % (hours, minutes)
 

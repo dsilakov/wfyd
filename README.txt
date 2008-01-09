@@ -6,10 +6,6 @@ Requirements
 
     GNOME 2, PyGTK 2.6+.
 
-    The program runs unmodified on Fedora Core 4 with the stock
-    set of packages (since Fedora's system configuration tools
-    also use PyGTK).
-
 Installation
 
     No installation is required or supported yet.
@@ -18,7 +14,7 @@ Running
 
     Enter the software directory and run "wfyd.py":
 
-        $ cd wfyd-0.1
+        $ cd wfyd
         $ ./wfyd.py
 
     The main window will be displayed.  For usage help,
@@ -26,9 +22,13 @@ Running
 
 Reporting Bugs
 
-    Visit http://www.plope.com/software/collector
+    Visit http://sourceforge.net/projects/wfyd
 
-Author
+Current Mantainer
+
+    Denis Silakov (d_uragan@users.sf.net)
+
+Original Author
 
     Chris McDonough (chrism@plope.com)
 
