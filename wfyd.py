@@ -22,6 +22,7 @@ import os
 import pickle
 import sys
 import socket
+from pysqlite2 import dbapi2 as sqlite
 
 here = os.path.abspath(os.path.split(__file__)[0])
 
@@ -32,12 +33,42 @@ WEBSITE = 'http:///wfyd.sourceforge.net'
 ISO = "%Y-%m-%d %H:%M:%S"
 
 class MainWindow(object):
-    
-    def __init__(self, datafile):
-        if os.path.exists(datafile):
-            self.root = pickle.load(open(datafile))
-        else:
-            self.root = Root()
+
+    def __init__(self, dbfile):
+        con = sqlite.connect(dbfile)
+        cur = con.cursor()
+        self.root = Root()
+
+        self.current_task_id = 0;
+        self.task_running = 0;
+        #if os.path.exists(dbfile):
+            #con = sqlite.connect(dbfile)
+            #cur = con.cursor()
+
+        #else:
+        cur.execute("""
+            create table if not exists projects
+            (
+                project_id        integer               PRIMARY KEY AUTOINCREMENT,
+                project_name  varchar(255)      UNIQUE,
+                last_used         integer
+            )
+            """)
+        cur.execute("""
+            create table if not exists tasks
+            (
+                task_id            integer               PRIMARY KEY AUTOINCREMENT,
+                project_id        integer,
+                task_name      varchar(255),
+                time_start       timestamp          UNIQUE,
+                time_finish      timestamp,
+                UNIQUE          (project_id, task_name, time_start)
+            )
+            """)
+
+        # correct possible inconsistencies
+        cur.execute("update tasks set time_finish = current_timestamp where time_finish < time_start")
+
         gnome.init('WFYD', VERSION)
         self.wtree = gtk.glade.XML(os.path.join(here, 'wfyd.glade'))
         self.window = self.wtree.get_widget('main')
@@ -61,6 +92,18 @@ class MainWindow(object):
         self.nagging = False
         self.last_nag_time = time.time()
         self.nag_id = gobject.timeout_add(1000, self.nag_cb)
+
+        projectbox = self.wtree.get_widget('projectbox')
+        cur.execute("select project_name, project_id from projects order by project_id")
+        for row in cur:
+            projectbox.append_text(row[0])
+            self.root.projects[row[0]] = Project(row[0])
+            # TODO: fill project entries with tasks
+            cur_tasks = con.cursor()
+            cur_tasks.execute("select task_name, strftime('%s', time_start), strftime('%s', time_finish) from tasks where project_id=" + str(row[1]))
+            for row_tasks in cur_tasks:
+                self.root.projects[row[0]].add_entry(row_tasks[1], row_tasks[2], row_tasks[0])
+
 
     def on_main_destroy(self, *args):
         self.root.save()
@@ -105,7 +148,11 @@ class MainWindow(object):
         projectbox = self.wtree.get_widget('projectbox')
         projectname = projectbox.get_child().get_text().strip()
 
+        con = sqlite.connect(dbfile)
+        cur = con.cursor()
+
         if widget.get_active():
+            # New task is being started
             if not projectname:
                 widget.set_active(False)
                 self.change_status('You must choose or create a project in '
@@ -115,7 +162,35 @@ class MainWindow(object):
             self.start_time = int(time.time())
             self.gobutton_set_stop()
             self.source_id = gobject.timeout_add(100, self.gobutton_refresh_cb)
+
+            if self.task_running == 0:
+                cur.execute("select count(*) from projects projects where project_name='" + projectname + "' ")
+                project_cnt = cur.fetchone()[0]
+                if project_cnt == 0:
+                    cur.execute("select max(project_id) from projects")
+                    project_id = str(cur.fetchone()[0])
+                    if project_id == "None":
+                        project_id = 0
+                    else:
+                        project_id = int(project_id)+1
+                    cur.execute("insert into projects values( " + str(project_id) + ", '" + projectname + "', 1) ")
+                else:
+                    cur.execute("select project_id from projects where project_name='" + projectname + "' ")
+                    project_id = cur.fetchone()[0]
+
+                cur.execute("select max(task_id) from tasks")
+                self.current_task_id = str(cur.fetchone()[0])
+                if self.current_task_id == "None":
+                    self.current_task_id = 0
+                else:
+                    self.current_task_id = int(self.current_task_id)
+                self.current_task_id+=1
+                cur.execute("insert into tasks values(" + str(self.current_task_id) + ", " + str(project_id) + ", '',  current_timestamp, 0)" )
+                con.commit()
+                cur.execute("select max(task_id) from tasks")
+                self.task_running = 1
         else:
+            # Running task is being finished
             if not projectname:
                 return
             assert self.start_time is not None
@@ -130,11 +205,16 @@ class MainWindow(object):
             project = self.root.get_or_create(projectname)
             project.add_entry(self.start_time, self.start_time + seconds,
                               text)
-            self.root.save()
             notesbox.set_buffer(gtk.TextBuffer())
             self.start_time = None
             self.refresh_projectbox()
             self.gobutton_set_add()
+
+            cur.execute("update tasks set task_name= '" + text + "', time_finish = current_timestamp where task_id = " + str(self.current_task_id))
+            con.commit()
+            self.task_running = 0
+
+
         self.change_status('')
         self.entrytree_widget.refresh(projectname)
 
@@ -158,7 +238,7 @@ class MainWindow(object):
         window = button.get_toplevel()
         dia = gtk.Dialog('Delete Project',
                  window,  #the toplevel wgt of your app
-                 gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,  
+                 gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
                  (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT,
                   gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT))
         dia.set_transient_for(window)
@@ -170,8 +250,13 @@ class MainWindow(object):
             pass
         elif result == gtk.RESPONSE_ACCEPT:
             self.root.remove(projectname)
-            self.root.save()
             self.refresh_projectbox()
+            self.projectbox.get_child().set_text('')
+            con = sqlite.connect(dbfile)
+            cur = con.cursor()
+            cur.execute("delete from tasks where project_id in (select project_id from projects where project_name='" + project_name + "')")
+            cur.execute("delete from projects where project_name = '" + projectname +"'" )
+            con.commit()
         dia.destroy()
 
     def on_notesbox_key_press_event(self, *args):
@@ -225,7 +310,7 @@ class MainWindow(object):
             label.set_text(minutes_repr(time.time() - self.start_time)+ ' ')
         # must return True to reschedule
         return True
-        
+
     def nag_cb(self):
         window = self.window
         nag_interval = self.root.get_option('nag_interval', None)
@@ -354,6 +439,9 @@ class EntryTree(object):
             return
         project = self.root.get_or_create(projectname)
         for entry in project.get_entries():
+            #f=open('/tmp/workfile', 'w')
+            #f.write('This is a test ' + str(entry.begin)    + ' 111\n')
+            #f.close()
             begin = int(entry.begin)
             duration = int(entry.end - entry.begin)
             iter = self.store.append()
@@ -399,7 +487,7 @@ class EntryTree(object):
                 project.remove_entry(n)
             n+=1
         store.remove(iter)
-        self.root.save()
+        #self.root.save()
 
     def on_entrytree_row_activated(self, *args):
         self.editwindow.display()
@@ -424,7 +512,7 @@ class EntryEditWindow(object):
         self.minutebox = self.wtree.get_widget('minutes_edit_box')
         self.notesbox   = self.wtree.get_widget('notes_edit_box')
         init_signals(self, self.wtree.signal_autoconnect)
-    
+
     def display(self):
         store, paths = self.entrytree.get_selection().get_selected_rows()
         path = paths[0]
@@ -458,7 +546,7 @@ class EntryEditWindow(object):
         project = self.root.get(projectname)
 
         if not project:
-            return 
+            return
 
         n = 0
         for entry in project.get_entries():
@@ -468,7 +556,7 @@ class EntryEditWindow(object):
                 entry.set_notes(text)
             n+=1
 
-        self.root.save()
+        #self.root.save()
         self.hide()
         self.parent.refresh(projectname)
 
@@ -494,7 +582,7 @@ class PreferencesWindow(object):
 
     def on_prefs_ok_clicked(self, *args):
         self.root.set_option('nag_interval', self.nag_interval.get_value())
-        self.root.save()
+        #self.root.save()
         self.hide()
 
     def on_prefs_cancel_clicked(self, *args):
@@ -507,7 +595,7 @@ class PreferencesWindow(object):
 def minutes_repr(seconds):
     minutes = seconds / 60
     hours = int(minutes / 60)
-    minutes = minutes - (hours * 60)
+    minutes = minutes - hours * 60
     return '%02d:%02d' % (hours, minutes)
 
 def init_signals(instance, cb):
@@ -522,12 +610,12 @@ def init_signals(instance, cb):
 
 class Root(object):
     options = None
-    
+
     def __init__(self):
         self.projects = {}
         self.categories = {}
         self.options = {}
-        
+
     def get(self, projectname):
         return self.projects.get(projectname)
 
@@ -551,7 +639,9 @@ class Root(object):
             del self.projects[projectname]
 
     def save(self):
-        pickle.dump(self, open(datafile, 'w'))
+        con = sqlite.connect(dbfile)
+        cur = con.cursor()
+        cur.execute("update tasks set time_finish = current_timestamp where time_finish < time_start")
 
     def set_option(self, name, value):
         if self.options is None:
@@ -568,9 +658,9 @@ class Project(object):
 
     def add_entry(self, start, stop, notes):
         entry = Entry()
-        entry.start(start)
+        entry.start(int(start))
         entry.set_notes(notes)
-        entry.stop(stop)
+        entry.stop(int(stop))
         self.entries.append(entry)
 
     def remove_entry(self, num):
@@ -602,14 +692,15 @@ class Entry(object):
 
 if __name__ == '__main__':
     try:
-        datafile = sys.argv[1]
+        dbfile = sys.argv[1]
     except IndexError:
-        datafile = os.path.expanduser('~/.wfyd.dat')
-    app = MainWindow(datafile)
+        dbfile = os.path.expanduser('~/.wfyd.db')
+
+    app = MainWindow(dbfile)
     try:
         gtk.main()
     except KeyboardInterrupt:
         pass
-    
 
-                                         
+
+
