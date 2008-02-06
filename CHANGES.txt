@@ -1,3 +1,9 @@
+unreleased
+
+   Added support for packaging / running as a setuptools-created egg.
+   
+   sqlite database is used to store data instead of pickle
+
 0.5
     
    Corrected bug which could break displaying of minutes passed on some

@@ -1,0 +1,7 @@
+include wfyd.glade
+include wfyd.gladep
+include resources/wfyd-32x32.png
+include resources/record.png
+include resources/smallgears.gif
+include resources/stop.png
+include doc/wfyd.xml

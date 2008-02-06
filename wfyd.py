@@ -19,22 +19,45 @@ import gnome.ui
 import gobject
 import time
 import os
-import pickle
 import sys
 import socket
-from pysqlite2 import dbapi2 as sqlite
+try:
+    from pysqlite2 import dbapi2 as sqlite
+except:
+    from sqlite3 import dbapi2 as sqlite
 
-here = os.path.abspath(os.path.split(__file__)[0])
+try:
+    from pkg_resources import resource_filename
+except ImportError:
+    here = os.path.abspath(os.path.split(__file__)[0])
+    GLADE_TREE = os.path.join(here, 'wfyd.glade')
+    WINDOW_ICON = os.path.join(here, 'resources', 'wfyd-32x32.png')
+    RECORD_ICON = os.path.join(here, 'resources', 'record.png')
+    SMALLGEARS_ANIM = os.path.join(here, 'resources', 'smallgears.gif')
+    STOP_ICON = os.path.join(here, 'resources', 'stop.png')
+    HELPFILE = os.path.join(here, 'doc', 'wfyd.xml')
+else:
+    GLADE_TREE = resource_filename(__name__, 'wfyd.glade')
+    WINDOW_ICON = resource_filename(__name__, 'resources/wfyd-32x32.png')
+    RECORD_ICON = resource_filename(__name__, 'resources/record.png')
+    SMALLGEARS_ANIM = resource_filename(__name__, 'resources/smallgears.gif')
+    STOP_ICON = resource_filename(__name__, 'resources/stop.png')
+    HELPFILE = resource_filename(__name__, 'doc/wfyd.xml')
 
-VERSION = '0.5'
-AUTHORS = ['Chris McDonough (chrism@plope.com)','Denis Silakov (d_uragan@rambler.ru)']
+VERSION = '0.6'
+AUTHORS = ['Chris McDonough (chrism@plope.com)',
+           'Denis Silakov (d_uragan@rambler.ru)',
+           'Tres Seaver (tseaver@palladion.com)',
+          ]
 WEBSITE = 'http:///wfyd.sourceforge.net'
 
 ISO = "%Y-%m-%d %H:%M:%S"
 
+dbfile = None
+
 class MainWindow(object):
 
-    def __init__(self, dbfile):
+    def __init__(self):
         con = sqlite.connect(dbfile)
         cur = con.cursor()
         self.root = Root()
@@ -70,15 +93,16 @@ class MainWindow(object):
         cur.execute("update tasks set time_finish = current_timestamp where time_finish < time_start")
 
         gnome.init('WFYD', VERSION)
-        self.wtree = gtk.glade.XML(os.path.join(here, 'wfyd.glade'))
+        self.wtree = gtk.glade.XML(GLADE_TREE)
         self.window = self.wtree.get_widget('main')
         #gnome.ui.window_icon_set_from_default(self.window)
-        self.window.set_icon_from_file(os.path.join(here, 'resources',
-                                                    'wfyd-32x32.png'))
+        self.window.set_icon_from_file(os.path.join(WINDOW_ICON))
         self.start_time = None
         init_signals(self, self.wtree.signal_autoconnect)
         self.entrytree_widget = EntryTree(self.wtree, self.root)
         self.preferences = PreferencesWindow(self.wtree, self.root)
+	self.journals = JournalsWindow(self.wtree, self.root)
+	self.journaltree_widget = JournalTree(self.wtree, self.root)
         self.projectbox = self.wtree.get_widget('projectbox')
         self.gobutton = self.wtree.get_widget('gobutton')
         self.gobutton_set_add()
@@ -98,7 +122,7 @@ class MainWindow(object):
         for row in cur:
             projectbox.append_text(row[0])
             self.root.projects[row[0]] = Project(row[0])
-            # TODO: fill project entries with tasks
+            # TODO: fill project entries with tasks for last/current day only
             cur_tasks = con.cursor()
             cur_tasks.execute("select task_name, strftime('%s', time_start), strftime('%s', time_finish) from tasks where project_id=" + str(row[1]))
             for row_tasks in cur_tasks:
@@ -114,11 +138,11 @@ class MainWindow(object):
         alignment = widget.get_children()[0]
         hbox = alignment.get_children()[0]
         image, label = hbox.get_children()
-        #image.set_from_file(os.path.join(here, 'resources', 'record.png'))
+        #image.set_from_file(RECORD_ICON)
 
         image.set_from_stock(gtk.STOCK_ADD, gtk.ICON_SIZE_BUTTON)
         label.set_text('Add   ')
-        # cold do something like this instead but above is easier
+        # could do something like this instead but above is easier
         #icon_theme = gtk.icon_theme_get_default()
         #pixbuf = icon_theme.load_icon('Add', 24, 0)
         #image.set_from_pixbuf(pixbuf)
@@ -128,7 +152,7 @@ class MainWindow(object):
         alignment = widget.get_children()[0]
         hbox = alignment.get_children()[0]
         image, label = hbox.get_children()
-        #image.set_from_file(os.path.join(here, 'resources', 'record.png'))
+        #image.set_from_file(RECORD_ICON)
 
         image.set_from_stock(gtk.STOCK_STOP, gtk.ICON_SIZE_BUTTON)
         label.set_text('Stop  ')
@@ -138,10 +162,9 @@ class MainWindow(object):
         #image.set_from_pixbuf(pixbuf)
 
         # or an animation
-        #anim = os.path.join(here, 'resources', 'smallgears.gif')
-        #pixbufanim = gtk.gdk.PixbufAnimation(anim)
+        #pixbufanim = gtk.gdk.PixbufAnimation(SMALLGEARS_ANIM)
         #image.set_from_animation(pixbufanim)
-        #image.set_from_file(os.path.join(here, 'resources', 'stop.png'))
+        #image.set_from_file(STOP_ICON)
 
 
     def on_gobutton_toggled(self, widget):
@@ -217,11 +240,13 @@ class MainWindow(object):
 
         self.change_status('')
         self.entrytree_widget.refresh(projectname)
+	self.journaltree_widget.refresh(projectname)
 
     def on_projectbox_entry_changed(self, entrybox):
         projectname = entrybox.get_text().strip()
         if self.root.get(projectname):
-            self.entrytree_widget.refresh(projectname)
+		self.entrytree_widget.refresh(projectname)
+		self.journaltree_widget.refresh(projectname)
 
     def on_projectbox_changed(self, projectbox):
         entrybox = projectbox.get_child()
@@ -294,11 +319,15 @@ class MainWindow(object):
     def on_preferences1_activate(self, *args):
         self.preferences.display()
 
+    def on_journals_clicked(self, *args):
+	#self.journals = JournalsWindow(self.wtree, self.root)
+	#self.journals.journaltree_widget = JournalTree(self.wtree, self.root)
+        self.journals.display()
+	
     def on_contents1_activate(self, *args):
         # frameworkitis has consumed the help system api, so let's avoid that
         # by calling yelp directly
-        helpfile = os.path.join(here, 'doc', 'wfyd.xml')
-        os.spawnvpe(os.P_NOWAIT, 'yelp', ['yelp', helpfile], os.environ)
+        os.spawnvpe(os.P_NOWAIT, 'yelp', ['yelp', HELPFILE], os.environ)
 
     # callbacks
 
@@ -499,12 +528,133 @@ class EntryTree(object):
             return False # this means it was found
         return True
 
+class JournalTree(object):
+    def __init__(self, wtree, root):
+        self.wtree = wtree
+        self.root = root
+        self.projectbox = self.wtree.get_widget('projectbox')
+        self.projectname = self.projectbox.get_child().get_text().strip()        
+	self.journaltree = self.wtree.get_widget('journaltree')
+        self.journaltree.set_rules_hint(True) # alternating colors
+
+        self.journal_date_start = self.wtree.get_widget('journal_date_start')
+        self.journal_date_finish = self.wtree.get_widget('journal_date_finish')
+        self.journal_date_start.set_flags(0);
+        self.journal_date_finish.set_flags(0);
+	
+        treeselection = self.journaltree.get_selection()
+        treeselection.set_mode(gtk.SELECTION_MULTIPLE)
+        self.store = gtk.ListStore(gobject.TYPE_INT,    # time.time() date
+                                   gobject.TYPE_STRING, # date repr
+                                   gobject.TYPE_INT,    # int seconds
+                                   gobject.TYPE_STRING, # repr in minutes
+                                   gobject.TYPE_STRING  # notes
+                                   )
+        self.store.set_sort_column_id(0, gtk.SORT_DESCENDING)
+        self.journaltree.set_model(self.store)
+
+        col = gtk.TreeViewColumn('Date', gtk.CellRendererText(), text=1)
+        col.set_sort_column_id(0)
+        col.set_resizable(True)
+        self.journaltree.append_column(col)
+
+        col = gtk.TreeViewColumn('Time', gtk.CellRendererText(), text=3)
+        col.set_sort_column_id(2)
+        col.set_resizable(True)
+        self.journaltree.append_column(col)
+
+        col = gtk.TreeViewColumn('Notes', gtk.CellRendererText(), text=4)
+        col.set_sort_column_id(4)
+        col.set_resizable(True)
+        self.journaltree.append_column(col)
+
+        self.journaltree.set_property('headers-visible', True)
+        self.journaltree.set_search_column(4)
+        self.journaltree.set_search_equal_func(self.notes_search)
+        projectbox = self.wtree.get_widget('projectbox')
+        self.editwindow = JournalEntryEditWindow(self)
+        init_signals(self, self.wtree.signal_autoconnect)
+
+    def clear(self):
+        self.store.clear()
+
+    def refresh(self, projectname):
+        self.store.clear()
+        if not projectname:
+            return
+
+        con = sqlite.connect(dbfile)
+        cur = con.cursor()
+
+	# get necessary entries for the project given and fill journal entries with them
+        cur.execute("select project_id from projects where project_name='" + projectname +"'")
+	project_id = cur.fetchone()[0]
+
+        cur_tasks = con.cursor()
+        cur_tasks.execute("select task_name, strftime('%s', time_start), strftime('%s', time_finish) from tasks where project_id=" + str(project_id) )
+        for row_tasks in cur_tasks:
+            begin = int(row_tasks[1])
+            duration = int(row_tasks[2]) - int(row_tasks[1])
+            iter = self.store.append()
+            self.store.set_value(iter, 0, int(row_tasks[1]))
+            self.store.set_value(iter, 1, time.strftime(ISO, time.localtime(begin)))
+            self.store.set_value(iter, 2, duration)
+            self.store.set_value(iter, 3, minutes_repr(duration))
+            self.store.set_value(iter, 4, row_tasks[0])
+
+    def on_journaltree_button_press_event(self, view, event):
+        if event.button != 3:
+            # right button
+            return
+        count = self.journaltree.get_selection().count_selected_rows()
+        if count < 1:
+            return True
+        elif count == 1:
+            popup = self.wtree.get_widget('entry_rightclick_popup')
+        elif count > 1:
+            popup = self.wtree.get_widget('entry_rightclick_popup_multi')
+        popup.popup(None, None, None, event.button, event.time)
+        return True
+
+    def on_edit_entry_activate(self, *args):
+        self.editwindow.display()
+
+    def on_entry_delete_activate(self, menuitem):
+        model, paths = self.entrytree.get_selection().get_selected_rows()
+        iters = [ model.get_iter(path) for path in paths ]
+        for iter in iters:
+            self.delete_entry_row(model, iter)
+
+    def delete_entry_row(self, store, iter):
+        time = store.get_value(iter, 0)
+        projectname = self.projectbox.get_child().get_text().strip()
+        project = self.root.get(projectname)
+        if not project:
+            return
+        n = 0
+        for entry in project.get_entries():
+            if time == entry.begin:
+                project.remove_entry(n)
+            n+=1
+        store.remove(iter)
+        #self.root.save()
+
+    def on_journaltree_row_activated(self, *args):
+        self.editwindow.display()
+
+    def notes_search(self, model, column_num, searchstring, rowiter, d=None):
+        # this is less than ideal because it's not an incremental search
+        text = model.get_value(rowiter, column_num)
+        if text.find(searchstring) != -1:
+            return False # this means it was found
+        return True
+
 class EntryEditWindow(object):
     def __init__(self, parent):
         self.wtree = parent.wtree
         self.root = parent.root
         self.store = parent.store
-        self.entrytree = parent.entrytree
+	self.entrytree = parent.entrytree
         self.projectbox = parent.projectbox
         self.parent = parent
         self.window = self.wtree.get_widget('entry_edit')
@@ -524,6 +674,71 @@ class EntryEditWindow(object):
         self.minutebox.set_value(minutes)
         self.notesbox.get_buffer().set_text(notes)
         self.window.set_transient_for(self.entrytree.get_toplevel())
+        self.window.show_all()
+
+    def hide(self):
+        self.window.hide()
+
+    def on_entry_edit_cancel_clicked(self, *args):
+        self.hide()
+
+    def on_entry_edit_apply_clicked(self, *args):
+        begin = int(self.datebox.get_time())
+        seconds = int(self.minutebox.get_value() * 60)
+        buffer = self.notesbox.get_buffer()
+        start, end = buffer.get_bounds()
+        text = buffer.get_text(start, end)
+        store, paths = self.entrytree.get_selection().get_selected_rows()
+        path = paths[0]
+        iter = store.get_iter(path)
+        oldbegin = self.store.get_value(iter, 0)
+        projectname = self.projectbox.get_child().get_text().strip()
+        project = self.root.get(projectname)
+
+        if not project:
+            return
+
+        n = 0
+        for entry in project.get_entries():
+            if oldbegin == entry.begin:
+                entry.begin = begin
+                entry.end = begin + seconds
+                entry.set_notes(text)
+            n+=1
+
+        #self.root.save()
+        self.hide()
+        self.parent.refresh(projectname)
+
+    def on_entry_edit_delete_event(self, *args):
+        self.hide()
+        return True # dont allow this window to be destroyed
+
+class JournalEntryEditWindow(object):
+    def __init__(self, parent):
+        self.wtree = parent.wtree
+        self.root = parent.root
+        self.store = parent.store
+	self.journaltree = parent.journaltree
+        self.projectbox = parent.projectbox
+        self.parent = parent
+        self.window = self.wtree.get_widget('entry_edit')
+        self.datebox = self.wtree.get_widget('date_edit_box')
+        self.minutebox = self.wtree.get_widget('minutes_edit_box')
+        self.notesbox   = self.wtree.get_widget('notes_edit_box')
+        init_signals(self, self.wtree.signal_autoconnect)
+
+    def display(self):
+	store, paths = self.journaltree.get_selection().get_selected_rows()
+        path = paths[0]
+        iter = store.get_iter(path)
+        start = store.get_value(iter, 0)
+        minutes = store.get_value(iter, 2) / 60
+        notes = store.get_value(iter, 4)
+        self.datebox.set_time(start)
+        self.minutebox.set_value(minutes)
+        self.notesbox.get_buffer().set_text(notes)
+	self.window.set_transient_for(self.journaltree.get_toplevel())
         self.window.show_all()
 
     def hide(self):
@@ -592,6 +807,25 @@ class PreferencesWindow(object):
         self.hide()
         return True # dont allow this window to be destroyed
 
+class JournalsWindow(object):
+    def __init__(self, wtree, root):
+        self.wtree = wtree
+        self.root = root
+        self.window = self.wtree.get_widget('Journals')
+	#self.journaltree_widget = JournalTree(self.wtree, self.root)
+        init_signals(self, self.wtree.signal_autoconnect)
+
+    def display(self):
+        self.window.set_transient_for(self.wtree.get_widget('main'))
+        self.window.show_all()
+
+    def hide(self):
+        self.window.hide()
+
+    def on_Journals_delete_event(self, *args):
+        self.hide()
+        return True # dont allow this window to be destroyed
+	
 def minutes_repr(seconds):
     minutes = seconds / 60
     hours = int(minutes / 60)
@@ -690,17 +924,19 @@ class Entry(object):
         else:
             self.begin = when
 
-if __name__ == '__main__':
+def main():
+    global dbfile
     try:
         dbfile = sys.argv[1]
     except IndexError:
         dbfile = os.path.expanduser('~/.wfyd.db')
 
-    app = MainWindow(dbfile)
+    app = MainWindow()
     try:
         gtk.main()
     except KeyboardInterrupt:
         pass
 
-
+if __name__ == '__main__':
+    main()
 
