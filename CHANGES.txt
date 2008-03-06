@@ -1,13 +1,21 @@
-unreleased
+0.6
+   sqlite database is used to store data instead of pickle.
 
-   Added support for packaging / running as a setuptools-created egg.
+   Added support for packaging / running as a setuptools-created egg
+   (thanks to Tres Seaver).
    
-   sqlite database is used to store data instead of pickle
+   When wfyd starts, records for the last active day only are displayed in
+   main window. Older records can be accessed through new 'Journals'
+   window.
+   
+   In journals window one can set dates interval for which entries
+   should be displayed.
+   
 
 0.5
     
    Corrected bug which could break displaying of minutes passed on some
-   systems
+   systems.
 
    yelp binary path was incorrect on some platforms which meant the
    help system didn't always work (thanks to fir2fox).

@@ -60,6 +60,7 @@ SETUPTOOLS_METADATA = {
     'include_package_data': True,
     'install_requires': ['PyGTK',
                          'gnome-python',
+			 'sqlite3',
                         ],
     'entry_points': {
         'console_scripts': [

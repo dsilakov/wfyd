@@ -11,10 +11,6 @@ Round up to the nearest minute in entries.
 
 Incremental search of entries.
 
-Use a database instead of a big pickle.
-
-If we dont use a database, at least use a lockfile.
-
 Billable/nonbillable flag.
 
 Add "today", "this week", "this month", "this year" "all" filters as

@@ -4,11 +4,15 @@ About WFYD
 
 Requirements
 
-    GNOME 2, PyGTK 2.6+.
+    GNOME 2, PyGTK 2.6+, sqlite3.
 
 Installation
 
-    No installation is required or supported yet.
+    There is a support for packaging / running as a setuptools-created egg.
+    To get more help, enter the software directory and ask setup.py for help:
+    
+	$ cd wfyd
+	$ python setup.py --help-commands
 
 Running
 
