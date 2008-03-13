@@ -18,6 +18,7 @@ import gnome
 import gnome.ui
 import gobject
 import time
+import datetime
 import os
 import sys
 import socket
@@ -308,6 +309,15 @@ class MainWindow(object):
             self.export_vcal(filename)
         dialog.destroy()
 
+    def on_export_to_text1_activate(self, *args):
+        dialog = gtk.FileSelection("Export text file..")
+        dialog.set_filename('wfyd.txt')
+        response = dialog.run()
+        if response == gtk.RESPONSE_OK:
+            filename = dialog.get_filename()
+            self.export_text(filename)
+        dialog.destroy()
+
     def on_about1_activate(self, *args):
         dialog = gtk.AboutDialog()
         dialog.set_version(VERSION)
@@ -421,6 +431,58 @@ class MainWindow(object):
                 f.write("END:VEVENT\n")
         f.write("END:VCALENDAR\n")
         f.close()
+
+    def export_text(self, filename):
+        
+        file = open(filename, 'w')
+       
+        # To sort items (in case of adding a new item they aren't sorted) i need
+        # to remake all operations with database ordering by time_start       
+        db = sqlite.connect(dbfile)
+        project = db.cursor()
+        # Take all projects from db
+        project.execute("select project_name, project_id from projects order by project_id")
+        
+        for row in project:
+            project_name = row[0]
+            project_id = row[1]
+            
+            file.write("        %s\n\n" % project_name)
+            
+            task = db.cursor()
+            # Take all tasks for a given project from db
+            task.execute("select task_name, strftime('%s', time_start), strftime('%s', time_finish) from tasks where project_id = " + str(project_id) + " order by time_start desc")
+            
+            # A key for printing a date one time foreach value of date
+            date = -1;
+            
+            for row in task:
+                task_note = row[0]
+                task_begin = row[1]
+                task_end = row[2]
+               
+                task_note = task_note.replace('\n', '\n        ')
+                    
+                end = time.localtime((float)(task_end));
+                begin = time.localtime((float)(task_begin));
+                
+                end_time = datetime.datetime(end[0], end[1], end[2], end[3], end[4], end[5])
+                begin_time = datetime.datetime(begin[0], begin[1], begin[2], begin[3], begin[4], begin[5])
+
+                duration = end_time - begin_time
+                
+                if date != begin[2]:
+                    if date != -1:
+                        file.write("\n")
+                        
+                    file.write("    %s\n\n" % begin_time.strftime("%d (%A) %B"))
+                    date = begin[2]
+                
+                file.write("%s %s\n" % (duration, task_note))
+            
+            file.write("\n\n");
+            
+        file.close()
 
 class EntryTree(object):
     def __init__(self, wtree, root):

@@ -11,6 +11,7 @@
    In journals window one can set dates interval for which entries
    should be displayed.
    
+   Export to text file is available.
 
 0.5
     
