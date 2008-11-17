@@ -45,7 +45,7 @@ else:
     STOP_ICON = resource_filename(__name__, 'resources/stop.png')
     HELPFILE = resource_filename(__name__, 'doc/wfyd.xml')
 
-VERSION = '0.6'
+VERSION = '0.7'
 AUTHORS = ['Chris McDonough (chrism@plope.com)',
            'Denis Silakov (d_uragan@rambler.ru)',
            'Tres Seaver (tseaver@palladion.com)',
@@ -101,19 +101,20 @@ class MainWindow(object):
         self.window.set_icon_from_file(os.path.join(WINDOW_ICON))
         self.start_time = None
         init_signals(self, self.wtree.signal_autoconnect)
-        self.entrytree_widget = EntryTree(self.wtree, self.root)
+	self.entrytree_widget = EntryTree(self.wtree, self.root)
         self.preferences = PreferencesWindow(self.wtree, self.root)
 	self.projectbox = self.wtree.get_widget('projectbox')
 	self.journals = JournalsWindow(self.wtree, self.root)
 	self.journaltree_widget = JournalTree(self.wtree, self.root)
         self.gobutton = self.wtree.get_widget('gobutton')
-        self.gobutton_set_add()
+        self.statusbar = self.wtree.get_widget('appbar1')
+	self.gobutton_set_add()
         self.refresh_projectbox()
 
         # can't see projectbox child in glade, so need to connect signal here
         self.projectbox.get_child().connect('changed',
                                             self.on_projectbox_entry_changed)
-
+        
         #self.projectbox.set_active(0)
         self.nagging = False
         self.last_nag_time = time.time()
@@ -239,7 +240,6 @@ class MainWindow(object):
             cur.execute(sql_stmt)
 	    con.commit()
             self.task_running = 0
-
 
         self.change_status('')
         self.entrytree_widget.refresh(projectname)
@@ -401,9 +401,10 @@ class MainWindow(object):
 
     def change_status(self, status):
         appbar = self.wtree.get_widget('appbar1')
-        statusframe = appbar.get_children()[0]
-        label = statusframe.get_children()[0]
-        label.set_text(status)
+	appbar.set_status(status)
+#        statusframe = appbar.get_children()[0]
+#        label = statusframe.get_children()[0]
+#        label.set_text(status)
 
     def export_vcal(self, filename):
         f = open(filename, 'w')
@@ -517,6 +518,8 @@ class EntryTree(object):
         col.set_resizable(True)
         self.entrytree.append_column(col)
 
+        self.statusbar = self.wtree.get_widget('appbar1')
+
         self.entrytree.set_property('headers-visible', True)
         self.entrytree.set_search_column(4)
         self.entrytree.set_search_equal_func(self.notes_search)
@@ -533,9 +536,6 @@ class EntryTree(object):
             return
         project = self.root.get_or_create(projectname)
         for entry in project.get_entries():
-            #f=open('/tmp/workfile', 'w')
-            #f.write('This is a test ' + str(entry.begin)    + ' 111\n')
-            #f.close()
             begin = int(entry.begin)
             duration = int(entry.end - entry.begin)
             iter = self.store.append()
@@ -546,10 +546,24 @@ class EntryTree(object):
             self.store.set_value(iter, 3, minutes_repr(duration))
             self.store.set_value(iter, 4, entry.notes)
 
+    # Calculate total time spent on selected tasks
+    def on_entrytree_button_release_event(self, view, event):
+        if event.button == 1:
+            # left button
+            model, paths = self.entrytree.get_selection().get_selected_rows()
+            iters = [ model.get_iter(path) for path in paths ]
+            total_duration = 0
+            for iter in iters:
+                duration = model.get_value(iter, 2)
+                total_duration += duration
+            date_str = minutes_repr(total_duration)
+            self.statusbar.set_status("Total time spent on selected tasks: " + date_str)
+    
     def on_entrytree_button_press_event(self, view, event):
         if event.button != 3:
-            # right button
+	    # not right button
             return
+
         count = self.entrytree.get_selection().count_selected_rows()
         if count < 1:
             return True
@@ -639,15 +653,30 @@ class JournalTree(object):
         col.set_resizable(True)
         self.journaltree.append_column(col)
 
+	self.journal_statusbar = self.wtree.get_widget('journal_statusbar')
+
         self.journaltree.set_property('headers-visible', True)
         self.journaltree.set_search_column(4)
         self.journaltree.set_search_equal_func(self.notes_search)
         projectbox = self.wtree.get_widget('projectbox')
         self.editwindow = JournalEntryEditWindow(self)
         init_signals(self, self.wtree.signal_autoconnect)
-#        fileIN = open("/var/tmp/out3", "a")
-#        fileIN.write("journal called \n")
-#        fileIN.close()
+
+    # Calculate total time spent on selected tasks
+    def on_journaltree_button_release_event(self, view, event):
+        if event.button == 1:
+            # left button
+            model, paths = self.journaltree.get_selection().get_selected_rows()
+            iters = [ model.get_iter(path) for path in paths ]
+            total_duration = 0
+            for iter in iters:
+                duration = model.get_value(iter, 2)
+                total_duration += duration
+            date_str = minutes_repr(total_duration)
+#            self.journal_statusbar.set_status("Total time spent on selected tasks: " + date_str)
+#            if self_old_id > 0
+            self.journal_statusbar.pop(0)
+            self.old_id = self.journal_statusbar.push(0,"Total time spent on selected tasks: " + date_str)
 
     def clear(self):
         self.store.clear()

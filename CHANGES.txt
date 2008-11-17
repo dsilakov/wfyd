@@ -1,3 +1,8 @@
+0.7
+
+   Status bar now displays total time spent on tasks selected in the
+   task box in both main and journals windows.
+
 0.6
    sqlite database is used to store data instead of pickle.
 
