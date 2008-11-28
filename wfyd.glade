@@ -1,7 +1,10 @@
 <?xml version="1.0"?>
 <glade-interface>
+  <requires-version lib="gtk+" version="2.12"/>
   <requires lib="bonobo"/>
+  <requires-version lib="bonobo" version="0.0"/>
   <requires lib="gnome"/>
+  <requires-version lib="gnome" version="0.0"/>
   <widget class="GnomeApp" id="main">
     <property name="visible">True</property>
     <property name="title" translatable="yes">WFYD</property>
@@ -680,6 +683,57 @@
           </packing>
         </child>
         <child>
+          <widget class="GtkAlignment" id="alignment1">
+            <property name="visible">True</property>
+            <child>
+              <widget class="GtkHBox" id="hbox2">
+                <property name="visible">True</property>
+                <child>
+                  <widget class="GtkButton" id="LastDayBtn">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <property name="label" translatable="yes">Last Active Day</property>
+                    <property name="response_id">0</property>
+                    <signal name="pressed" handler="on_LastDayBtn_pressed"/>
+                  </widget>
+                </child>
+                <child>
+                  <widget class="GtkButton" id="LastWeekBtn">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <property name="label" translatable="yes">Last Week</property>
+                    <property name="response_id">0</property>
+                    <signal name="pressed" handler="on_LastWeekBtn_pressed"/>
+                  </widget>
+                  <packing>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkButton" id="LastMonthBtn">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <property name="label" translatable="yes">Last Month</property>
+                    <property name="response_id">0</property>
+                    <signal name="pressed" handler="on_LastMonthBtn_pressed"/>
+                  </widget>
+                  <packing>
+                    <property name="position">2</property>
+                  </packing>
+                </child>
+              </widget>
+            </child>
+          </widget>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">False</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
           <widget class="GtkScrolledWindow" id="scrolledwindow6">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
@@ -694,7 +748,7 @@
             </child>
           </widget>
           <packing>
-            <property name="position">1</property>
+            <property name="position">2</property>
           </packing>
         </child>
         <child>
@@ -704,7 +758,7 @@
           </widget>
           <packing>
             <property name="expand">False</property>
-            <property name="position">2</property>
+            <property name="position">3</property>
           </packing>
         </child>
       </widget>

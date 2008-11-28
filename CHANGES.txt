@@ -1,3 +1,6 @@
+0.8
+   Journals window now displays data for the last month by default.
+
 0.7
 
    Status bar now displays total time spent on tasks selected in the
