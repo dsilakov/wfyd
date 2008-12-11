@@ -1,16 +1,20 @@
 <?xml version="1.0" standalone="no"?>
-<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN" 
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN"
 "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd" [
 <!ENTITY version "1.4">
 ]>
 
 <article id="index" lang="en">
 
-  <articleinfo> 
+  <articleinfo>
     <title>WFYD Manual</title>
     <copyright>
-      <year>2005</year>
+      <year>2005-2006</year>
       <holder>Chris McDonough</holder>
+    </copyright>
+    <copyright>
+      <year>2007-2009</year>
+      <holder>Denis Silakov</holder>
     </copyright>
 
     <legalnotice id="legalnotice">
@@ -34,10 +38,10 @@
 
     </legalnotice>
 
-    <releaseinfo> 
-         This is version 0.1 of the WFYD manual.
-     </releaseinfo> 
-<!-- this is version of manual, not application --> 
+    <releaseinfo>
+         This is version 0.2 of the WFYD manual.
+     </releaseinfo>
+<!-- this is version of manual, not application -->
   </articleinfo>
 
 <!-- =============Document Body ============================= -->
@@ -46,14 +50,14 @@
 
 <!-- =============Introduction ============================= -->
   <sect1 id="introduction">
-      <title>Introduction</title> 
+      <title>Introduction</title>
     <sect2 id="whatis">
     <title>What is WFYD?</title>
     <para>
-      <application>WFYD</application> 
+      <application>WFYD</application>
       is a simple application that may be used to keep track of time
-      spent on projects.  It is meant to be as simple and feature-free
-      as possible.
+      spent on projects. It is meant to be simple as possible,
+      with a minimalistic user interface.
     </para>
     <para>
      Features include:
@@ -62,7 +66,7 @@
           <para>
     <emphasis>Creating Projects</emphasis>
           Projects are names.  A project contains one or more "entries".
-          </para> 
+          </para>
         </listitem>
 
         <listitem>
@@ -74,7 +78,7 @@
            series of notes describing what happened during this
            period.
 
-          </para> 
+          </para>
         </listitem>
 
         <listitem>
@@ -82,16 +86,26 @@
     <emphasis>Nag</emphasis>
         WFYD can be configured to nag you on a scheduled basis to make
         a new entry or stop the current entry timer.
-          </para> 
+          </para>
 
-	</listitem>
+    </listitem>
 
         <listitem>
           <para>
-    <emphasis>Nag</emphasis>
-        WFYD can export its project/entry database to vCal for import
+    <emphasis>Export</emphasis>
+        WFYD can export its project/entry database to plain text files
+        as well as vCal format for import
         into programs like Evolution.
-          </para> 
+          </para>
+        </listitem>
+
+        <listitem>
+          <para>
+    <emphasis>Journals</emphasis>
+        WFY tries ti display only recent entries in its main window.
+        Old entries for every project can be observed in the Journals window,
+        which has 'Last Active Day', 'Last Week' and 'Last Month' filters.
+          </para>
         </listitem>
 
     </itemizedlist>
@@ -101,14 +115,14 @@
 </sect1>
 
 
-<sect1 id="usage"> 
+<sect1 id="usage">
    <title>Using WFYD</title>
    <sect2 id="working">
       <title>Working with WFYD</title>
 
 <para>
         When you first start <application>WFYD</application>, you see
-        the <interface>Main window</interface>, as shown in 
+        the <interface>Main window</interface>, as shown in
   <xref linkend="mainwindowfig"/>.
 <!-- ==============Figure=================================== -->
         <figure id="mainwindowfig" xreflabel="WFYD Main Window">
@@ -119,7 +133,7 @@
           </screenshot>
         </figure>
 <!-- ==============End of Figure=================================== -->
-</para>      
+</para>
 
 
       <para>
@@ -168,12 +182,12 @@
       If you've configured WFYD to with a "nag interval" (see the
       Preferences section of this manual), the main WFYD window will
       present itself to you every so often while you're working.
-</para>    
+</para>
 
 <para>
       To edit an existing entry, double-click on its entry field in the entry
-      list.  The <interface>Edit Entry</interface> window 
-as shown in 
+      list.  The <interface>Edit Entry</interface> window
+as shown in
   <xref linkend="editwindowfig"/> will be displayed.
 <!-- ==============Figure=================================== -->
         <figure id="editwindowfig" xreflabel="WFYD Edit Entry Window">
@@ -229,16 +243,31 @@ as shown in
 </para>
 
 <para>
-      The data related to this program is kept in a file in
-      <filename>~/.wfyd.dat</filename>.
 
+  To export the project/entries database to a plain text file,
+  choose the <guibutton>Export to text</guibutton> button in the
+  <guibutton>File</guibutton> menu and select a filename to write.
+
+</para>
+
+<para>
+      The data related to this program is kept in a file in
+      <filename>~/.wfyd.db</filename>. This is sqlite3 database
+      file that can be accessed directly using sqlite3 command line interface
+      or any GUI tool that can access sqlite databases.
+
+      The database is very simle - it contains two tables, 'projects'
+      and 'tasks'. Please see the beginning of the <filename>wfyd.py</filename>
+      file for information about fields of these tables - the
+      <interface>MainWindow.__init__</interface> function
+      contains SQL queries that create the tables.
    </para>
 
 </sect2>
 
 </sect1>
 
-<sect1 id="preferences"> 
+<sect1 id="preferences">
    <title>WFYD Preferences</title>
    <sect2 id="preferences1">
       <title>WFYD Preferences</title>
@@ -246,7 +275,7 @@ as shown in
 <para>
         When you choose the <guibutton>Preferences</guibutton> menu item
         from the <guibutton>Edit</guibutton> menu, you will be presented with
-        the <interface>Preferences</interface>, as shown in 
+        the <interface>Preferences</interface>, as shown in
   <xref linkend="prefsfig"/>.
 <!-- ==============Figure=================================== -->
         <figure id="prefsfig" xreflabel="WFYD Preferences">
@@ -261,7 +290,7 @@ as shown in
 
 <para>
 
-You can change the "nag interval" here.  Setting the nag interval to a nonzero
+You can change the "nag interval" here. Setting the nag interval to a nonzero
 value will cause WFYD to present its main window to you every nag-interval
 minutes.
 
@@ -276,12 +305,13 @@ minutes.
   <sect1 id="authors">
     <title>Authors</title>
     <para>
-       <application>WFYD</application> was written by Chris McDonough.
+       <application>WFYD</application> was initially written by Chris McDonough
+       and now is supported by Denis Silakov.
     </para>
     <para>
-      Please submit all comments, suggestions, and bug reports 
-      on the  
-      <ulink url="http://www.plope.com/software/wfyd/">Project site</ulink>
+      Please submit all comments, suggestions, and bug reports
+      on the
+      <ulink url="http://sourceforge.net/projects/wfyd/">Project site</ulink>
     </para>
 </sect1>
 

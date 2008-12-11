@@ -1,5 +1,8 @@
 0.8
-   Journals window now displays data for the last month by default.
+   Added 'Last Active Day', 'Last Week', 'Last Month' filters to the journals window.
+   Data for the last month is displayed by default.
+   
+   Added possibility of deleting records from the journals window.
 
 0.7
 

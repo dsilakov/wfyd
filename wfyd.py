@@ -1,5 +1,5 @@
 #!/usr/bin/python
-COPYRIGHT = """Copyright (c) 2005-2008 Chris McDonough, Denis Silakov and Contributors.
+COPYRIGHT = """Copyright (c) 2005-2009 Chris McDonough, Denis Silakov and Contributors.
 All Rights Reserved."""
 
 LICENSE = """\
@@ -27,7 +27,7 @@ try:
     from pysqlite2 import dbapi2 as sqlite
 except:
     from sqlite3 import dbapi2 as sqlite
-
+#~
 try:
     from pkg_resources import resource_filename
 except ImportError:
@@ -90,7 +90,7 @@ class MainWindow(object):
             """)
 
         # correct possible inconsistencies that can occur in the db after unexpected crashes
-        cur.execute("update tasks set time_finish = current_timestamp where time_finish < time_start")
+        cur.execute("UPDATE tasks SET time_finish = current_timestamp WHERE time_finish < time_start")
         con.commit()
 
         gnome.init('WFYD', VERSION)
@@ -170,7 +170,6 @@ class MainWindow(object):
         #image.set_from_animation(pixbufanim)
         #image.set_from_file(STOP_ICON)
 
-
     def on_gobutton_toggled(self, widget):
         projectbox = self.wtree.get_widget('projectbox')
         projectname = projectbox.get_child().get_text().strip()
@@ -237,10 +236,9 @@ class MainWindow(object):
             self.refresh_projectbox()
             self.gobutton_set_add()
 
-            sql_stmt = "UPDATE tasks SET task_name= '"
-            sql_stmt+= text.replace("'","''")
-            sql_stmt+= "', time_finish = current_timestamp WHERE task_id = "
-            sql_stmt+= str(self.current_task_id)
+            sql_stmt = "UPDATE tasks SET task_name= '" + text.replace("'","''") + "', "
+            sql_stmt+= "  time_finish = current_timestamp "
+            sql_stmt+= "WHERE task_id = " + str(self.current_task_id)
 
             cur.execute(sql_stmt)
             con.commit()
@@ -338,8 +336,10 @@ class MainWindow(object):
         self.preferences.display()
 
     def on_journals_clicked(self, *args):
-    #self.journals = JournalsWindow(self.wtree, self.root)
-    #self.journals.journaltree_widget = JournalTree(self.wtree, self.root)
+        projectbox = self.wtree.get_widget('projectbox')
+        projectname = projectbox.get_child().get_text().strip()
+        self.journaltree_widget.finish_time = int(time.time())
+        self.journaltree_widget.refresh(projectname)
         self.journals.display()
 
     def on_contents1_activate(self, *args):
@@ -441,7 +441,7 @@ class MainWindow(object):
     def export_text(self, filename):
         file = open(filename, 'w')
 
-        # To sort items (in case of adding a new item they aren't sorted) i need
+        # To sort items (in case of adding a new item they aren't sorted) we need
         # to remake all operations with database ordering by time_start
         db = sqlite.connect(dbfile)
         project = db.cursor()
@@ -456,7 +456,10 @@ class MainWindow(object):
 
             task = db.cursor()
             # Take all tasks for a given project from db
-            task.execute("SELECT task_name, strftime('%s', time_start), strftime('%s', time_finish) FROM tasks WHERE project_id = " + str(project_id) + " ORDER BY time_start desc")
+            sql_stmt = "SELECT task_name, strftime('%s', time_start), strftime('%s', time_finish) FROM tasks "
+            sql_stmt+= "WHERE project_id = " + str(project_id)
+            sql_stmt+= " ORDER BY time_start DESC"
+            task.execute(sql_stmt)
 
             # A key for printing a date one time foreach value of date
             date = -1;
@@ -563,6 +566,8 @@ class EntryTree(object):
             date_str = minutes_repr(total_duration)
             self.statusbar.set_status("Total time spent on selected tasks: " + date_str)
 
+    # This function handles right button click only.
+    # Left button clicked is handled by the next function.
     def on_entrytree_button_press_event(self, view, event):
         if event.button != 3:
         # not right button
@@ -621,7 +626,6 @@ class JournalTree(object):
         self.wtree = wtree
         self.root = root
         self.projectbox = self.wtree.get_widget('projectbox')
-        self.projectname = self.projectbox.get_child().get_text().strip()
 
         self.journaltree = self.wtree.get_widget('journaltree')
         self.journaltree.set_rules_hint(True) # alternating colors
@@ -695,39 +699,47 @@ class JournalTree(object):
     def on_LastDayBtn_pressed(self, event):
         self.journal_date_finish.set_time(0)
         current_date = datetime.datetime.now()
+        self.projectname = self.projectbox.get_child().get_text().strip()
 
         # Calculate actual active day, not the simply previous one
         con = sqlite.connect(dbfile)
         cur = con.cursor()
-        cur.execute("SELECT strftime('%s', MAX(time_start)) FROM tasks JOIN projects USING(project_id) WHERE project_name = '" + self.projectname + "'")
-        last_start_time = cur.fetchone()[0];
+        sql_stmt = "SELECT strftime('%s', MAX(time_start)) FROM tasks "
+        sql_stmt+= "JOIN projects USING(project_id) "
+        sql_stmt+= "WHERE project_name = '" + self.projectname + "'"
 
-        # time() is too precise
-        current_time = int(time.time())
+        cur.execute(sql_stmt)
+        self.start_time = cur.fetchone()[0];
+
+        if not self.start_time:
+            self.start_time = 0
+        else :
+            current_time = int(time.time())
+            self.start_time = int(self.start_time) - int(self.start_time)%(60*60*24)
+
         diff = int( time.mktime(time.localtime()) - time.mktime(time.gmtime()) )
-
-        # Add one minute here, since time is too precise:)
-        self.start_time = current_time-60*60*24-diff-current_time%(60*60*24)
-        self.journal_date_start.set_time(self.start_time)
+        self.journal_date_start.set_time(self.start_time - diff)
+        self.finish_time = int(time.time())
         self.refresh(self.projectname)
 
     def on_LastWeekBtn_pressed(self, event):
         self.journal_date_finish.set_time(0)
         current_date = datetime.datetime.now()
+        self.projectname = self.projectbox.get_child().get_text().strip()
 
-        # time() is too precise
         current_time = int(time.time())
         diff = int( time.mktime(time.localtime()) - time.mktime(time.gmtime()) )
 
-        self.start_time = current_time-60*60*24*7-diff-current_time%(60*60*24)
-        self.journal_date_start.set_time(self.start_time)
+        self.start_time = current_time-60*60*24*7-current_time%(60*60*24)
+        self.journal_date_start.set_time(self.start_time-diff)
+        self.finish_time = current_time
         self.refresh(self.projectname)
 
     def on_LastMonthBtn_pressed(self, event):
         self.journal_date_finish.set_time(0)
         current_date = datetime.datetime.now()
+        self.projectname = self.projectbox.get_child().get_text().strip()
 
-        # time() is too precise
         current_time = int(time.time())
         diff = int( time.mktime(time.localtime()) - time.mktime(time.gmtime()) )
 
@@ -738,8 +750,9 @@ class JournalTree(object):
         else:
             days=calendar.monthrange(current_date.year, current_date.month-1)[1]
 
-        self.start_time = current_time-60*60*24*days-diff-(current_time%(60*60*24))
-        self.journal_date_start.set_time(self.start_time)
+        self.start_time = current_time-60*60*24*days-(current_time%(60*60*24))
+        self.journal_date_start.set_time(self.start_time-diff)
+        self.finish_time = current_time
         self.refresh(self.projectname)
 
     # Calculate total time spent on selected tasks
@@ -775,26 +788,33 @@ class JournalTree(object):
         cur = con.cursor()
 
         # get necessary entries for the project given and fill journal entries with them
-        cur.execute("select project_id from projects where project_name='" + projectname +"'")
+        cur.execute("SELECT project_id FROM projects WHERE project_name='" + projectname +"'")
         project_id = cur.fetchone()[0]
 
-        self.journal_date_start = self.wtree.get_widget('journal_date_start')
-        self.journal_date_finish = self.wtree.get_widget('journal_date_finish')
-        date_start = int(self.journal_date_start.get_time())
-        date_finish = int(self.journal_date_finish.get_time())
+        date_start = self.start_time
+        date_finish = self.finish_time
+
         cur_tasks = con.cursor()
         if( not date_start ):
-            date_start=self.start_time
+            date_start=0
         if( not date_finish ):
-            date_finish=0
+            self.finish_time = time.mktime(time.gmtime())
+
         # select tasks whose periods intersect with the selected one
         sql_stmt = "SELECT task_name, strftime('%s', time_start), strftime('%s', time_finish) FROM tasks "
-        sql_stmt+= "WHERE ( (time_start <= datetime(" + str(date_finish) + ", 'unixepoch') AND time_start >= datetime(" + str(date_start) + ", 'unixepoch') ) "
-        sql_stmt+= "OR (time_finish <= datetime(" + str(date_finish) + ", 'unixepoch') AND time_finish >= datetime(" + str(date_start) + ", 'unixepoch') ) ) AND project_id=" + str(project_id)
+        sql_stmt+= "WHERE ( (time_start <= datetime(" + str(date_finish) + ", 'unixepoch') "
+        sql_stmt+= "          AND time_start >= datetime(" + str(date_start) + ", 'unixepoch') ) "
+        sql_stmt+= "        OR (time_finish <= datetime(" + str(date_finish) + ", 'unixepoch') "
+        sql_stmt+= "            AND time_finish >= datetime(" + str(date_start) + ", 'unixepoch') ) "
+        sql_stmt+= ") AND project_id=" + str(project_id)
         cur_tasks.execute(sql_stmt)
         for row_tasks in cur_tasks:
             begin = int(row_tasks[1])
-            duration = int(row_tasks[2]) - int(row_tasks[1])
+            if row_tasks[2] < row_tasks[1]:
+                task_finish = time.mktime(time.localtime())
+            else :
+                task_finish = row_tasks[2]
+            duration = int(task_finish) - int(row_tasks[1])
             iter = self.store.append()
             self.store.set_value(iter, 0, int(row_tasks[1]))
             self.store.set_value(iter, 1, time.strftime(ISO, time.localtime(begin)))
@@ -810,16 +830,13 @@ class JournalTree(object):
         if count < 1:
             return True
         elif count == 1:
-            popup = self.wtree.get_widget('entry_rightclick_popup')
+            popup = self.wtree.get_widget('journal_entry_rightclick_popup')
         elif count > 1:
-            popup = self.wtree.get_widget('entry_rightclick_popup_multi')
+            popup = self.wtree.get_widget('journal_entry_rightclick_popup_multi')
         popup.popup(None, None, None, event.button, event.time)
         return True
 
     def on_edit_journal_entry_activate(self, *args):
-#        fileIN = open("/var/tmp/out3", "a")
-#        fileIN.write("journal called \n")
-#        fileIN.close()
         self.editwindow.display()
 
     def on_journal_entry_delete_activate(self, menuitem):
@@ -850,9 +867,6 @@ class JournalTree(object):
         con.commit()
 
     def on_journaltree_row_activated(self, *args):
-#        fileIN = open("/var/tmp/out3", "a")
-#        fileIN.write("journal called \n")
-#        fileIN.close()
         self.editwindow.display()
 
     def notes_search(self, model, column_num, searchstring, rowiter, d=None):
@@ -865,7 +879,6 @@ class JournalTree(object):
     def on_journal_date_start_date_changed(self, *args):
         self.projectbox = self.wtree.get_widget('projectbox')
         self.projectname = self.projectbox.get_child().get_text().strip()
-
         self.refresh(self.projectname)
 
 
@@ -893,7 +906,10 @@ class EntryEditWindow(object):
 
         con = sqlite.connect(dbfile)
         cur = con.cursor()
-        cur.execute("SELECT task_id FROM tasks WHERE time_start = datetime(" + str(start) + ", 'unixepoch') AND task_name = '" + notes.replace("'","''") + "'")
+        sql_stmt = "SELECT task_id FROM tasks "
+        sql_stmt+= "WHERE time_start = datetime(" + str(start) + ", 'unixepoch') "
+        sql_stmt+= "AND task_name = '" + notes.replace("'","''") + "'"
+        cur.execute(sql_stmt)
         self.task_id = cur.fetchone()[0]
 
         self.datebox.set_time(start)
@@ -926,7 +942,10 @@ class EntryEditWindow(object):
 
         con = sqlite.connect(dbfile)
         cur = con.cursor()
-        sql_stmt = "UPDATE tasks SET task_name='" + text.replace("'","''") + "', time_start= datetime(" + str(begin) + ", 'unixepoch'), time_finish= datetime(" + str(begin+seconds) + ", 'unixepoch') WHERE task_id=" + str(self.task_id)
+        sql_stmt = "UPDATE tasks SET task_name='" + text.replace("'","''") + "', "
+        sql_stmt+= "  time_start = datetime(" + str(begin) + ", 'unixepoch'), "
+        sql_stmt+= "  time_finish = datetime(" + str(begin+seconds) + ", 'unixepoch') "
+        sql_stmt+= "WHERE task_id=" + str(self.task_id)
         cur.execute(sql_stmt)
         con.commit()
 
@@ -958,9 +977,6 @@ class JournalEntryEditWindow(object):
         self.minutebox = self.wtree.get_widget('journal_minutes_edit_box')
         self.notesbox   = self.wtree.get_widget('journal_notes_edit_box')
         init_signals(self, self.wtree.signal_autoconnect)
-#        fileIN = open("/var/tmp/out3", "a")
-#        fileIN.write("journal called2 \n")
-#        fileIN.close()
 
     def display(self):
         store, paths = self.journaltree.get_selection().get_selected_rows()
@@ -972,7 +988,9 @@ class JournalEntryEditWindow(object):
 
         con = sqlite.connect(dbfile)
         cur = con.cursor()
-        cur.execute("SELECT task_id FROM tasks WHERE time_start = datetime(" + str(start) + ", 'unixepoch') AND task_name = '" + notes.replace("'","''") + "'")
+        sql_stmt = "SELECT task_id FROM tasks WHERE time_start = datetime(" + str(start) + ", 'unixepoch') "
+        sql_stmt+= "AND task_name = '" + notes.replace("'","''") + "'"
+        cur.execute(sql_stmt)
 
         self.task_id = cur.fetchone()[0]
 
@@ -980,9 +998,6 @@ class JournalEntryEditWindow(object):
         self.minutebox.set_value(minutes)
         self.notesbox.get_buffer().set_text(notes)
         self.window.set_transient_for(self.journaltree.get_toplevel())
-#        fileIN = open("/var/tmp/out3", "a")
-#        fileIN.write("journal called3 \n")
-#        fileIN.close()
         self.window.show_all()
 
     def hide(self):
@@ -1009,7 +1024,10 @@ class JournalEntryEditWindow(object):
 
         con = sqlite.connect(dbfile)
         cur = con.cursor()
-        sql_stmt = "UPDATE tasks SET task_name='" + text.replace("'","''") + "', time_start= datetime(" + str(begin) + ", 'unixepoch'), time_finish= datetime(" + str(begin+seconds) + ", 'unixepoch') WHERE task_id=" + str(self.task_id)
+        sql_stmt = "UPDATE tasks SET task_name='" + text.replace("'","''") + "', "
+        sql_stmt+= "  time_start = datetime(" + str(begin) + ", 'unixepoch'), "
+        sql_stmt+= "  time_finish = datetime(" + str(begin+seconds) + ", 'unixepoch') "
+        sql_stmt+= "WHERE task_id=" + str(self.task_id)
         cur.execute(sql_stmt)
         con.commit()
 
@@ -1054,14 +1072,13 @@ class PreferencesWindow(object):
 
     def on_prefs_delete_event(self, *args):
         self.hide()
-        return True # dont allow this window to be destroyed
+        return True # don't allow this window to be destroyed
 
 class JournalsWindow(object):
     def __init__(self, wtree, root):
         self.wtree = wtree
         self.root = root
         self.window = self.wtree.get_widget('Journals')
-    #self.journaltree_widget = JournalTree(self.wtree, self.root)
         init_signals(self, self.wtree.signal_autoconnect)
 
     def display(self):

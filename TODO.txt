@@ -13,10 +13,8 @@ Incremental search of entries.
 
 Billable/nonbillable flag.
 
-Add "today", "this week", "this month", "this year" "all" filters as
-buttons above entry tree window.  Or maybe iTunes-like selectors for
-project and period filters.
-
-Total time for selected tasks in the Journals window
+iTunes-like selectors for project and period filters.
 
 Add a menu item for Find in Current View.
+
+'Today' flter in the journals window

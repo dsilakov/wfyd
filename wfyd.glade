@@ -290,15 +290,46 @@
       </packing>
     </child>
   </widget>
+  <widget class="GtkMenu" id="journal_entry_rightclick_popup">
+    <child>
+      <widget class="GtkImageMenuItem" id="journal_entry_delete">
+        <property name="visible">True</property>
+        <property name="label" translatable="yes">Delete</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="on_journal_entry_delete_activate"/>
+        <child internal-child="image">
+          <widget class="GtkImage" id="menu-item-image5">
+            <property name="visible">True</property>
+            <property name="stock">gtk-delete</property>
+            <property name="icon_size">1</property>
+          </widget>
+        </child>
+      </widget>
+    </child>
+    <child>
+      <widget class="GtkSeparatorMenuItem" id="journal_separator4">
+        <property name="visible">True</property>
+      </widget>
+    </child>
+    <child>
+      <widget class="GtkImageMenuItem" id="journal_edit_entry">
+        <property name="visible">True</property>
+        <property name="label" translatable="yes">gtk-properties</property>
+        <property name="use_underline">True</property>
+        <property name="use_stock">True</property>
+        <signal name="activate" handler="on_edit_journal_entry_activate"/>
+      </widget>
+    </child>
+  </widget>
   <widget class="GtkMenu" id="entry_rightclick_popup">
     <child>
       <widget class="GtkImageMenuItem" id="entry_delete">
         <property name="visible">True</property>
         <property name="label" translatable="yes">Delete</property>
         <property name="use_underline">True</property>
-        <signal name="activate" handler="on_entry_delete_activate"/>
+        <signal name="activate" handler="on_journal_entry_delete_activate"/>
         <child internal-child="image">
-          <widget class="GtkImage" id="menu-item-image5">
+          <widget class="GtkImage" id="menu-item-image6">
             <property name="visible">True</property>
             <property name="stock">gtk-delete</property>
             <property name="icon_size">1</property>
@@ -317,7 +348,7 @@
         <property name="label" translatable="yes">gtk-properties</property>
         <property name="use_underline">True</property>
         <property name="use_stock">True</property>
-        <signal name="activate" handler="on_edit_entry_activate"/>
+        <signal name="activate" handler="on_edit_journal_entry_activate"/>
       </widget>
     </child>
   </widget>
@@ -595,6 +626,23 @@
         <signal name="activate" handler="on_entry_delete_activate"/>
         <child internal-child="image">
           <widget class="GtkImage" id="image10">
+            <property name="visible">True</property>
+            <property name="stock">gtk-delete</property>
+            <property name="icon_size">1</property>
+          </widget>
+        </child>
+      </widget>
+    </child>
+  </widget>
+  <widget class="GtkMenu" id="journal_entry_rightclick_popup_multi">
+    <child>
+      <widget class="GtkImageMenuItem" id="on_journal_entry_multidelete">
+        <property name="visible">True</property>
+        <property name="label" translatable="yes">Delete</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="on_journal_entry_delete_activate"/>
+        <child internal-child="image">
+          <widget class="GtkImage" id="menu-item-image8">
             <property name="visible">True</property>
             <property name="stock">gtk-delete</property>
             <property name="icon_size">1</property>
