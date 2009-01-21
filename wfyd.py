@@ -642,7 +642,7 @@ class JournalTree(object):
         if current_date.month == 0:
             days=31
         else:
-            days=calendar.monthrange(current_date.year, current_date.month-1)[1]
+            days=calendar.monthrange(current_date.year, current_date.month)[1]
 
         self.start_time = int(time.time()-60*60*24*(days+1) )
         self.finish_time = int(time.time())
@@ -898,6 +898,9 @@ class EntryEditWindow(object):
 
     def display(self):
         store, paths = self.entrytree.get_selection().get_selected_rows()
+        if len(paths) == 0 :
+            return
+
         path = paths[0]
         iter = store.get_iter(path)
         start = store.get_value(iter, 0)
@@ -931,6 +934,9 @@ class EntryEditWindow(object):
         start, end = buffer.get_bounds()
         text = buffer.get_text(start, end)
         store, paths = self.entrytree.get_selection().get_selected_rows()
+        if len(paths) == 0 :
+            return
+
         path = paths[0]
         iter = store.get_iter(path)
         oldbegin = self.store.get_value(iter, 0)
@@ -980,6 +986,10 @@ class JournalEntryEditWindow(object):
 
     def display(self):
         store, paths = self.journaltree.get_selection().get_selected_rows()
+
+        if len(paths) == 0 :
+            return
+
         path = paths[0]
         iter = store.get_iter(path)
         start = store.get_value(iter, 0)
@@ -1013,6 +1023,9 @@ class JournalEntryEditWindow(object):
         start, end = buffer.get_bounds()
         text = buffer.get_text(start, end)
         store, paths = self.journaltree.get_selection().get_selected_rows()
+        if len(paths) == 0 :
+            return
+
         path = paths[0]
         iter = store.get_iter(path)
         oldbegin = self.store.get_value(iter, 0)
