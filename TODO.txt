@@ -17,4 +17,7 @@ iTunes-like selectors for project and period filters.
 
 Add a menu item for Find in Current View.
 
-'Today' flter in the journals window
+Journals window is not very fast for long periods (~1 year) with huge 
+number of records
+
+autoselect project

@@ -1,3 +1,14 @@
+0.9
+   Last active project is remembered now and selected automatically
+   when the application starts.
+
+   Fixed bug that prevented entries in the main window to be deleted.
+   
+   One more bug fix - modification of calendar values in the 
+   Journals window sometimes didn't actually change time interval.
+   
+   Performed some code refactoring on the basis of pylint analysis.
+
 0.8
    Added 'Last Active Day', 'Last Week', 'Last Month' filters to the journals window.
    Data for the last month is displayed by default.
