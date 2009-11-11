@@ -28,7 +28,7 @@ try:
     from pysqlite2 import dbapi2 as sqlite
 except:
     from sqlite3 import dbapi2 as sqlite
-#~
+
 try:
     from pkg_resources import resource_filename
 except ImportError:
@@ -47,7 +47,7 @@ else:
     STOP_ICON = resource_filename(__name__, 'resources/stop.png')
     HELPFILE = resource_filename(__name__, 'doc/wfyd.xml')
 
-VERSION = '0.9'
+VERSION = '1.0'
 AUTHORS = ['Chris McDonough (chrism@plope.com)',
            'Denis Silakov (d_uragan@rambler.ru)',
            'Tres Seaver (tseaver@palladion.com)',
@@ -91,11 +91,11 @@ class MainWindow(object):
             """)
 
         # correct possible inconsistencies that can occur
-	# in the db after unexpected crashes
+        # in the db after unexpected crashes
         cur.execute("""
             UPDATE tasks SET time_finish = current_timestamp
-	    WHERE time_finish < time_start
-	    """)
+            WHERE time_finish < time_start
+            """)
         con.commit()
 
         gnome.init('WFYD', VERSION)
@@ -119,18 +119,13 @@ class MainWindow(object):
         self.projectbox.get_child().connect('changed',
                                             self.on_projectbox_entry_changed)
 
-        #self.projectbox.set_active(0)
-        self.nagging = False
-        self.last_nag_time = time.time()
-        self.nag_id = gobject.timeout_add(1000, self.nag_cb)
-
         projectbox = self.wtree.get_widget('projectbox')
         cur.execute("""
             SELECT project_name, project_id, last_used FROM projects ORDER BY project_id
             """)
         for row in cur:
             projectbox.append_text(row[0])
-	    if row[2] == 1:
+            if row[2] == 1:
                 projectname = row[0]
             self.root.projects[row[0]] = Project(row[0])
             # project entries are filed with tasks for the last day only
@@ -151,8 +146,8 @@ class MainWindow(object):
 
     def on_main_destroy(self, *args):
         """
-	The app is going to be closed - we should save the current task in the db
-	"""
+        The app is going to be closed - we should save the current task in the db
+        """
         self.root.save()
         gtk.main_quit()
 
@@ -206,7 +201,15 @@ class MainWindow(object):
             self.change_status('')
             self.start_time = int(time.time())
             self.gobutton_set_stop()
-            self.source_id = gobject.timeout_add(100, self.gobutton_refresh_cb)
+            # Set timeouts to 1 minute - seems to be enough, but if someone needes
+            # more precise timings, the values should be decreased
+            self.source_id = gobject.timeout_add(60000, self.gobutton_refresh_cb)
+            self.nag_id = gobject.timeout_add(60000, self.nag_cb)
+            self.nagging = False
+            self.last_nag_time = time.time()
+            # Call toggle button refresh right now, so '00:00' will appear on that button
+            # (to indicate that the task is running)
+            self.gobutton_refresh_cb();
 
             if self.task_running == 0:
                 cur.execute("SELECT COUNT(*) FROM projects WHERE project_name='" + projectname + "' ")
@@ -243,7 +246,10 @@ class MainWindow(object):
                 return
             assert self.start_time is not None
             gobject.source_remove(self.source_id)
+            gobject.source_remove(self.nag_id)
             self.source_id = None
+            self.nag_id = None
+            self.nagging = False
             end_time = time.time()
             seconds = int((end_time - self.start_time))
             notesbox = self.wtree.get_widget('notesbox')
@@ -351,9 +357,9 @@ class MainWindow(object):
 
     def on_export_to_text1_activate(self, *args):
         """
-	Reacion to the 'Export to text' menu item -
-	let user select a filename and then invoke exproting function
-	"""
+        Reacion to the 'Export to text' menu item -
+        let user select a filename and then invoke exproting function
+        """
         dialog = gtk.FileSelection("Export text file..")
         dialog.set_filename('wfyd.txt')
         response = dialog.run()
@@ -364,8 +370,8 @@ class MainWindow(object):
 
     def on_about1_activate(self, *args):
         """
-	Reaction to the 'About' menu item - just display AboutDialog
-	"""
+        Reaction to the 'About' menu item - just display AboutDialog
+        """
         dialog = gtk.AboutDialog()
         dialog.set_version(VERSION)
         dialog.set_authors(AUTHORS)
@@ -381,9 +387,9 @@ class MainWindow(object):
 
     def on_journals_clicked(self, *args):
         """
-	Reaction to the 'Journals' button - display journals window
-	for the current project
-	"""
+        Reaction to the 'Journals' button - display journals window
+        for the current project
+        """
         projectbox = self.wtree.get_widget('projectbox')
         projectname = projectbox.get_child().get_text().strip()
         self.journaltree_widget.finish_time = int(time.time())
@@ -496,8 +502,8 @@ class MainWindow(object):
         txt_file = open(filename, 'w')
 
         # To sort items (in case of adding a new item they aren't sorted) 
-	# we need to remake all operations with database
-	# ordering by time_start
+        # we need to remake all operations with database
+        # ordering by time_start
         db = sqlite.connect(dbfile)
         project = db.cursor()
         # Take all projects from db
@@ -632,7 +638,7 @@ class EntryTree(object):
     # Left button clicked is handled by the next function.
     def on_entrytree_button_press_event(self, view, event):
         if event.button != 3:
-        # not right button
+            # not right button
             return
 
         count = self.entrytree.get_selection().count_selected_rows()
@@ -700,9 +706,9 @@ class JournalTree(object):
 
         # By default, set finish time to the current one
         # and the start time to the last calendar month
-	# (not counting current day).
+        # (not counting current day).
         # In order to do this, we should know number of days 
-	# in the previous month.
+        # in the previous month.
         current_date = datetime.datetime.now()
         if current_date.month == 0:
             days = 31
@@ -855,7 +861,7 @@ class JournalTree(object):
         cur = con.cursor()
 
         # get necessary entries for the project given 
-	# and fill journal entries with them
+        # and fill journal entries with them
         cur.execute("SELECT project_id FROM projects WHERE project_name='" + projectname +"'")
         project_id = cur.fetchone()[0]
 
@@ -1105,7 +1111,7 @@ class JournalEntryEditWindow(object):
     def on_journal_entry_edit_cancel_clicked(self, *args):
         """ 
         'Edit Journal Entry' popup - 'Cancel' is pressed;
-	do not destroy the window, just hide it
+        do not destroy the window, just hide it
         """
         self.hide()
 
@@ -1156,6 +1162,7 @@ class PreferencesWindow(object):
         self.root = root
         self.window = self.wtree.get_widget('prefs')
         self.nag_interval = self.wtree.get_widget('nag_interval')
+	
         init_signals(self, self.wtree.signal_autoconnect)
 
     def display(self):
@@ -1172,7 +1179,6 @@ class PreferencesWindow(object):
         and hide the window (do not destroy it)
         """
         self.root.set_option('nag_interval', self.nag_interval.get_value())
-        #self.root.save()
         self.hide()
 
     def on_prefs_cancel_clicked(self, *args):
@@ -1220,12 +1226,12 @@ def minutes_repr(seconds):
     minutes = minutes - hours * 60
     return '%02d:%02d' % (hours, minutes)
 
-def init_signals(instance, cb):
+def init_signals(instance, callback):
     sig_dict = {}
     for k in instance.__class__.__dict__:
         if k.startswith('on_'):
             sig_dict[k] = getattr(instance, k)
-    cb(sig_dict)
+    callback(sig_dict)
 
 
 # persistent objects

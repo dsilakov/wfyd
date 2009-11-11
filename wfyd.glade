@@ -647,7 +647,7 @@
         <property name="label" translatable="yes">gtk-properties</property>
         <property name="use_underline">True</property>
         <property name="use_stock">True</property>
-        <signal name="activate" handler="on_edit_journal_entry_activate"/>
+        <signal name="activate" handler="on_edit_entry_activate"/>
       </widget>
     </child>
   </widget>
