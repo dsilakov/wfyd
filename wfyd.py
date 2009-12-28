@@ -47,7 +47,7 @@ else:
     STOP_ICON = resource_filename(__name__, 'resources/stop.png')
     HELPFILE = resource_filename(__name__, 'doc/wfyd.xml')
 
-VERSION = '1.0'
+VERSION = '1.0.1'
 AUTHORS = ['Chris McDonough (chrism@plope.com)',
            'Denis Silakov (d_uragan@rambler.ru)',
            'Tres Seaver (tseaver@palladion.com)',
@@ -120,6 +120,7 @@ class MainWindow(object):
                                             self.on_projectbox_entry_changed)
 
         projectbox = self.wtree.get_widget('projectbox')
+	projectname = "";
         cur.execute("""
             SELECT project_name, project_id, last_used FROM projects ORDER BY project_id
             """)
@@ -138,7 +139,6 @@ class MainWindow(object):
             for row_tasks in cur_tasks:
                 self.root.projects[row[0]].add_entry(row_tasks[1],
                                                 row_tasks[2], row_tasks[0])
-        
         entrybox = projectbox.get_child()
         entrybox.set_text(projectname)
         self.entrytree_widget.refresh(projectname)
@@ -461,9 +461,6 @@ class MainWindow(object):
     def change_status(self, status):
         appbar = self.wtree.get_widget('appbar1')
         appbar.set_status(status)
-#        statusframe = appbar.get_children()[0]
-#        label = statusframe.get_children()[0]
-#        label.set_text(status)
 
     def export_vcal(self, filename):
         """
