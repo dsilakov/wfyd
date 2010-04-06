@@ -1,4 +1,4 @@
-__version__ = '0.7'
+__version__ = '1.1'
 
 import os
 try:
@@ -60,7 +60,7 @@ SETUPTOOLS_METADATA = {
     'include_package_data': True,
     'install_requires': ['PyGTK',
                          'gnome-python',
-			 'sqlite3',
+                         'sqlite3',
                         ],
     'entry_points': {
         'console_scripts': [
@@ -68,7 +68,7 @@ SETUPTOOLS_METADATA = {
         ],
         'setuptools.installation': [
             'eggsecutable = wfyd:main',
-        ] 
+        ]
     }
 }
 
