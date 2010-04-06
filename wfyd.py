@@ -1,5 +1,5 @@
 #!/usr/bin/python
-COPYRIGHT = """Copyright (c) 2005-2009 Chris McDonough, 
+COPYRIGHT = """Copyright (c) 2005-2010 Chris McDonough,
 Denis Silakov and Contributors.
 All Rights Reserved."""
 
@@ -47,7 +47,7 @@ else:
     STOP_ICON = resource_filename(__name__, 'resources/stop.png')
     HELPFILE = resource_filename(__name__, 'doc/wfyd.xml')
 
-VERSION = '1.0.1'
+VERSION = '1.1'
 AUTHORS = ['Chris McDonough (chrism@plope.com)',
            'Denis Silakov (d_uragan@rambler.ru)',
            'Tres Seaver (tseaver@palladion.com)',
@@ -55,6 +55,9 @@ AUTHORS = ['Chris McDonough (chrism@plope.com)',
 WEBSITE = 'http:///wfyd.sourceforge.net'
 
 ISO = "%Y-%m-%d %H:%M:%S"
+
+# Seconds in a day (24*60*60)
+DAY_SEC=86400
 
 dbfile = None
 
@@ -120,7 +123,7 @@ class MainWindow(object):
                                             self.on_projectbox_entry_changed)
 
         projectbox = self.wtree.get_widget('projectbox')
-	projectname = "";
+        projectname = "";
         cur.execute("""
             SELECT project_name, project_id, last_used FROM projects ORDER BY project_id
             """)
@@ -133,12 +136,13 @@ class MainWindow(object):
             cur_tasks = con.cursor()
             cur_tasks.execute("""
                 SELECT task_name, strftime('%s', time_start),
-		                  strftime('%s', time_finish) FROM tasks
+                          strftime('%s', time_finish) FROM tasks
                 WHERE time_start >= (SELECT MAX(date(time_start)) FROM tasks)
                 AND project_id=""" + str(row[1]))
             for row_tasks in cur_tasks:
                 self.root.projects[row[0]].add_entry(row_tasks[1],
                                                 row_tasks[2], row_tasks[0])
+
         entrybox = projectbox.get_child()
         entrybox.set_text(projectname)
         self.entrytree_widget.refresh(projectname)
@@ -201,18 +205,25 @@ class MainWindow(object):
             self.change_status('')
             self.start_time = int(time.time())
             self.gobutton_set_stop()
-            # Set timeouts to 1 minute - seems to be enough, but if someone needes
+            # Set timeouts to 1 minute - seems to be enough,
+            # but if someone needes
             # more precise timings, the values should be decreased
             self.source_id = gobject.timeout_add(60000, self.gobutton_refresh_cb)
             self.nag_id = gobject.timeout_add(60000, self.nag_cb)
+            # One more timeout - once a day,
+            # drop old recrods from the main window
+            gobject.timeout_add(DAY_SEC*1000, self.task_cleanup_cb)
+#            gobject.timeout_add(6000, self.task_cleanup_cbb)
             self.nagging = False
             self.last_nag_time = time.time()
-            # Call toggle button refresh right now, so '00:00' will appear on that button
+            # Call toggle button refresh right now,
+            # so '00:00' will appear on that button
             # (to indicate that the task is running)
             self.gobutton_refresh_cb();
 
             if self.task_running == 0:
-                cur.execute("SELECT COUNT(*) FROM projects WHERE project_name='" + projectname + "' ")
+                cur.execute("SELECT COUNT(*) FROM projects WHERE project_name='"
+                             + projectname + "' ")
                 project_cnt = cur.fetchone()[0]
                 if project_cnt == 0:
                     cur.execute("SELECT MAX(project_id) FROM projects")
@@ -221,7 +232,9 @@ class MainWindow(object):
                         project_id = 0
                     else:
                         project_id = int(project_id)+1
-                    cur.execute("INSERT INTO projects VALUES( " + str(project_id) + ", '" + projectname + "', 1) ")
+                    cur.execute("INSERT INTO projects VALUES( "
+                                    + str(project_id) + ", '"
+                                    + projectname + "', 1) ")
                 else:
                     cur.execute("SELECT project_id FROM projects WHERE project_name='" + projectname + "' ")
                     project_id = cur.fetchone()[0]
@@ -233,9 +246,9 @@ class MainWindow(object):
                 else:
                     self.current_task_id = int(self.current_task_id)
                 self.current_task_id += 1
-                cur.execute("INSERT INTO tasks VALUES(" 
+                cur.execute("INSERT INTO tasks VALUES("
                                  + str(self.current_task_id) + ", "
-                                 + str(project_id) 
+                                 + str(project_id)
                                  + ", '',  current_timestamp, 0)" )
                 con.commit()
                 cur.execute("SELECT MAX(task_id) FROM tasks")
@@ -329,7 +342,8 @@ class MainWindow(object):
             sql_stmt += "SELECT project_id FROM projects "
             sql_stmt += "WHERE project_name='" + projectname + "')"
             cur.execute(sql_stmt)
-            cur.execute("DELETE FROM projects WHERE project_name = '" + projectname +"'" )
+            cur.execute("DELETE FROM projects WHERE project_name = '"
+                         + projectname + "'" )
             con.commit()
         dia.destroy()
 
@@ -408,7 +422,7 @@ class MainWindow(object):
         hbox = alignment.get_children()[0]
         image, label = hbox.get_children()
         if self.start_time:
-            label.set_text(minutes_repr(time.time() - self.start_time)+ ' ')
+            label.set_text(minutes_repr(time.time() - self.start_time) + ' ')
         # must return True to reschedule
         return True
 
@@ -424,6 +438,28 @@ class MainWindow(object):
             window.present()
         return True
 
+    def task_cleanup_cb(self):
+        """
+        Delete records that are older then two days from the main task window
+        """
+        model, paths = self.entrytree_widget.entrytree.get_selection().get_selected_rows()
+        iters = [ model.get_iter(path) for path in paths ]
+        current_time = time.time()
+        for item in iters:
+            item_time = model.get_value(item, 0)
+            if item_time < current_time - DAY_SEC*2:
+                model.remove(item)
+
+#    def task_cleanup_cbb(self):
+#        model, paths = self.entrytree_widget.entrytree.get_selection().get_selected_rows()
+#        iters = [ model.get_iter(path) for path in paths ]
+#        current_time = time.time()
+#        print "Called, time: " + str(current_time)
+#        for item in iters:
+#            item_time = model.get_value(item, 0)
+#            print " item time: " + str(item_time)
+#            if item_time < current_time - DAY_SEC*2:
+#                print "Removing item!"
     # utility methods
 
     def refresh_projectbox(self):
@@ -461,6 +497,9 @@ class MainWindow(object):
     def change_status(self, status):
         appbar = self.wtree.get_widget('appbar1')
         appbar.set_status(status)
+#        statusframe = appbar.get_children()[0]
+#        label = statusframe.get_children()[0]
+#        label.set_text(status)
 
     def export_vcal(self, filename):
         """
@@ -498,7 +537,7 @@ class MainWindow(object):
         """
         txt_file = open(filename, 'w')
 
-        # To sort items (in case of adding a new item they aren't sorted) 
+        # To sort items (in case of adding a new item they aren't sorted)
         # we need to remake all operations with database
         # ordering by time_start
         db = sqlite.connect(dbfile)
@@ -629,7 +668,7 @@ class EntryTree(object):
                 total_duration += duration
             date_str = minutes_repr(total_duration)
             self.statusbar.set_status(
-			    "Total time spent on selected tasks: " + date_str)
+                "Total time spent on selected tasks: " + date_str)
 
     # This function handles right button click only.
     # Left button clicked is handled by the next function.
@@ -704,16 +743,16 @@ class JournalTree(object):
         # By default, set finish time to the current one
         # and the start time to the last calendar month
         # (not counting current day).
-        # In order to do this, we should know number of days 
+        # In order to do this, we should know number of days
         # in the previous month.
         current_date = datetime.datetime.now()
         if current_date.month == 0:
             days = 31
         else:
-            days = calendar.monthrange(current_date.year, 
+            days = calendar.monthrange(current_date.year,
                                               current_date.month)[1]
 
-        self.start_time = int(time.time()-60*60*24*(days+1) )
+        self.start_time = int(time.time()-DAY_SEC*(days+1) )
         self.finish_time = int(time.time())
         self.journal_date_start.set_time(self.start_time)
         self.journal_date_finish.set_time(0)
@@ -762,51 +801,70 @@ class JournalTree(object):
     #
     # When displaying last week/month. let's set time to midnight.
     # Note that last week/month are calendar last week/month,
-    # while the last active day is actually the last day when some activities 
+    # while the last active day is actually the last day when some activities
     # was started.
     #
     # Since time() function is too precise (returns float with milliseconds),
     # we'll truncate it to int
     def on_LastDayBtn_pressed(self, event):
         self.journal_date_finish.set_time(0)
-        self.projectname = self.projectbox.get_child().get_text().strip()
+        projectname = self.projectbox.get_child().get_text().strip()
 
         # Calculate actual active day, not the simply previous one
+        # Do not take the current day into account
         con = sqlite.connect(dbfile)
         cur = con.cursor()
         sql_stmt =  "SELECT strftime('%s', MAX(time_start)) FROM tasks "
         sql_stmt += "JOIN projects USING(project_id) "
-        sql_stmt += "WHERE project_name = '" + self.projectname + "'"
+        sql_stmt += "WHERE project_name = '" + projectname + "'"
 
         cur.execute(sql_stmt)
         self.start_time = cur.fetchone()[0]
 
         if not self.start_time:
             self.start_time = 0
-        else :
-            self.start_time = int(self.start_time) - int(self.start_time) % (60*60*24)
+        else:
+            current_time = int(time.time())
+            current_day = int(current_time / DAY_SEC)
+            last_active_day = int(int(self.start_time) / DAY_SEC)
+            if last_active_day < current_day:
+                self.start_time = int(self.start_time) - int(self.start_time) % DAY_SEC
+            else:
+                # Ok, last active day is the current one.
+                # Let's check, if we have any active day before it,
+                # and choose that day, if any
+                sql_stmt =  "SELECT strftime('%s', MAX(time_start)) FROM tasks "
+                sql_stmt += "JOIN projects USING(project_id) "
+                sql_stmt += "WHERE project_name = '" + projectname + "'"
+                sql_stmt += "AND strftime('%s', time_start) < '" + str( int(self.start_time) - DAY_SEC ) + "'"
+                cur.execute(sql_stmt)
+                new_time = cur.fetchone()[0]
+                if new_time is not None:
+                    self.start_time = int(new_time) - int(self.start_time) % DAY_SEC
+                else:
+                    self.start_time = int(self.start_time) - int(self.start_time) % DAY_SEC
 
         diff = int( time.mktime(time.localtime()) - time.mktime(time.gmtime()) )
         self.journal_date_start.set_time(self.start_time - diff)
-        self.finish_time = int(time.time())
-        self.refresh(self.projectname)
+        self.finish_time = int(time.time()) - int(time.time()) % DAY_SEC
+        self.refresh(projectname)
 
     def on_LastWeekBtn_pressed(self, event):
         self.journal_date_finish.set_time(0)
-        self.projectname = self.projectbox.get_child().get_text().strip()
+        projectname = self.projectbox.get_child().get_text().strip()
 
         current_time = int(time.time())
         diff = int( time.mktime(time.localtime()) - time.mktime(time.gmtime()) )
 
-        self.start_time = current_time - 60*60*24*7 - current_time % (60*60*24)
+        self.start_time = current_time - DAY_SEC*7 - current_time % DAY_SEC
         self.journal_date_start.set_time(self.start_time - diff)
         self.finish_time = current_time
-        self.refresh(self.projectname)
+        self.refresh(projectname)
 
     def on_LastMonthBtn_pressed(self, event):
         self.journal_date_finish.set_time(0)
         current_date = datetime.datetime.now()
-        self.projectname = self.projectbox.get_child().get_text().strip()
+        projectname = self.projectbox.get_child().get_text().strip()
 
         current_time = int(time.time())
         diff = int( time.mktime(time.localtime()) - time.mktime(time.gmtime()) )
@@ -819,10 +877,10 @@ class JournalTree(object):
             days = calendar.monthrange(current_date.year,
                                                   current_date.month-1)[1]
 
-        self.start_time = current_time - 60*60*24*days - (current_time % (60*60*24))
+        self.start_time = current_time - DAY_SEC*days - (current_time % DAY_SEC)
         self.journal_date_start.set_time(self.start_time - diff)
         self.finish_time = current_time
-        self.refresh(self.projectname)
+        self.refresh(projectname)
 
     # Calculate total time spent on selected tasks
     def on_journaltree_button_release_event(self, view, event):
@@ -837,7 +895,7 @@ class JournalTree(object):
             date_str = minutes_repr(total_duration)
             self.journal_statusbar.pop(0)
             self.old_id = self.journal_statusbar.push(0,
-			    "Total time spent on selected tasks: " + date_str)
+                "Total time spent on selected tasks: " + date_str)
 
     def clear(self):
         self.store.clear()
@@ -857,9 +915,10 @@ class JournalTree(object):
         con = sqlite.connect(dbfile)
         cur = con.cursor()
 
-        # get necessary entries for the project given 
+        # get necessary entries for the project given
         # and fill journal entries with them
-        cur.execute("SELECT project_id FROM projects WHERE project_name='" + projectname +"'")
+        cur.execute("SELECT project_id FROM projects WHERE project_name='"
+                    + projectname + "'")
         project_id = cur.fetchone()[0]
 
         date_start = self.start_time
@@ -960,7 +1019,7 @@ class JournalTree(object):
         self.projectbox = self.wtree.get_widget('projectbox')
         self.projectname = self.projectbox.get_child().get_text().strip()
         self.start_time = self.journal_date_start.get_time()
-        self.finish_time = self.journal_date_finish.get_time()	
+        self.finish_time = self.journal_date_finish.get_time()
         self.refresh(self.projectname)
 
 class EntryEditWindow(object):
@@ -1106,7 +1165,7 @@ class JournalEntryEditWindow(object):
         self.window.hide()
 
     def on_journal_entry_edit_cancel_clicked(self, *args):
-        """ 
+        """
         'Edit Journal Entry' popup - 'Cancel' is pressed;
         do not destroy the window, just hide it
         """
@@ -1159,7 +1218,7 @@ class PreferencesWindow(object):
         self.root = root
         self.window = self.wtree.get_widget('prefs')
         self.nag_interval = self.wtree.get_widget('nag_interval')
-	
+
         init_signals(self, self.wtree.signal_autoconnect)
 
     def display(self):
@@ -1215,7 +1274,7 @@ class JournalsWindow(object):
 
 def minutes_repr(seconds):
     """
-    Given a number of seconds, create a string 
+    Given a number of seconds, create a string
     with minutes representation
     """
     minutes = seconds / 60

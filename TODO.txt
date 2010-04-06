@@ -17,12 +17,8 @@ iTunes-like selectors for project and period filters.
 
 Add a menu item for Find in Current View.
 
-Journals window is not very fast for long periods (~1 year) with huge 
+Journals window is not very fast for long periods (~1 year) with huge
 number of records
 
 If any entry visible in the main window is modified in the 'journal' one,
 the change is not reflected in the main table.
-
-'nag' state now only prints 'Nagging' in the statusbar;
-it would be useful to attach a message with the total idle time 
-to the task description, (or display idle time to user in some other way)
