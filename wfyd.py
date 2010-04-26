@@ -58,6 +58,7 @@ ISO = "%Y-%m-%d %H:%M:%S"
 
 # Seconds in a day (24*60*60)
 DAY_SEC=86400
+#DAY_SEC=6000
 
 dbfile = None
 
@@ -212,8 +213,7 @@ class MainWindow(object):
             self.nag_id = gobject.timeout_add(60000, self.nag_cb)
             # One more timeout - once a day,
             # drop old recrods from the main window
-            gobject.timeout_add(DAY_SEC*1000, self.task_cleanup_cb)
-#            gobject.timeout_add(6000, self.task_cleanup_cbb)
+            gobject.timeout_add(DAY_SEC, self.task_cleanup_cb)
             self.nagging = False
             self.last_nag_time = time.time()
             # Call toggle button refresh right now,
@@ -442,24 +442,31 @@ class MainWindow(object):
         """
         Delete records that are older then two days from the main task window
         """
-        model, paths = self.entrytree_widget.entrytree.get_selection().get_selected_rows()
-        iters = [ model.get_iter(path) for path in paths ]
         current_time = time.time()
-        for item in iters:
+        model = self.entrytree_widget.entrytree.get_model()
+        item = model.get_iter_first()
+        while item:
             item_time = model.get_value(item, 0)
+            item2 = model.iter_next(item)
             if item_time < current_time - DAY_SEC*2:
                 model.remove(item)
+            item = item2
 
-#    def task_cleanup_cbb(self):
-#        model, paths = self.entrytree_widget.entrytree.get_selection().get_selected_rows()
-#        iters = [ model.get_iter(path) for path in paths ]
-#        current_time = time.time()
-#        print "Called, time: " + str(current_time)
-#        for item in iters:
-#            item_time = model.get_value(item, 0)
-#            print " item time: " + str(item_time)
-#            if item_time < current_time - DAY_SEC*2:
-#                print "Removing item!"
+        idx = 0
+
+        projectbox = self.wtree.get_widget('projectbox')
+        projectname = projectbox.get_child().get_text().strip()
+        project = self.root.get(projectname)
+        for entry in project.get_entries():
+            if entry.begin < current_time - DAY_SEC*2:
+                project.remove_entry(idx)
+            idx += 1
+
+#        projectbox = self.wtree.get_widget('projectbox')
+#        projectname = projectbox.get_child().get_text().strip()
+#        self.entrytree_widget.finish_time = int(time.time())
+#        self.entrytree_widget.refresh(projectname)
+
     # utility methods
 
     def refresh_projectbox(self):
