@@ -1,3 +1,16 @@
+1.1
+   'Last active day' filter in the Journals window now doesn't take the
+   current day into account.
+   If wfyd is running for a long time, the main window will be cleaned up
+   once a day to contain records for last two days only.
+
+1.0.1
+   Issue fix - creation of a new ddatabase led to undefined 'projectname'
+   variable.
+
+1.0
+   Minor cosmetic fixes in code.
+
 0.9
    Last active project is remembered now and selected automatically
    when the application starts.
