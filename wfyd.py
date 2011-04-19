@@ -1,5 +1,5 @@
 #!/usr/bin/python
-COPYRIGHT = """Copyright (c) 2005-2010 Chris McDonough,
+COPYRIGHT = """Copyright (c) 2005-2011 Chris McDonough,
 Denis Silakov and Contributors.
 All Rights Reserved."""
 
@@ -47,7 +47,7 @@ else:
     STOP_ICON = resource_filename(__name__, 'resources/stop.png')
     HELPFILE = resource_filename(__name__, 'doc/wfyd.xml')
 
-VERSION = '1.1'
+VERSION = '1.9'
 AUTHORS = ['Chris McDonough (chrism@plope.com)',
            'Denis Silakov (d_uragan@rambler.ru)',
            'Tres Seaver (tseaver@palladion.com)',
@@ -65,7 +65,7 @@ dbfile = None
 class MainWindow(object):
 
     def __init__(self):
-        # Even if dbfile is not exists, it will be created
+        # Even if dbfile does not exist, it will be created
         con = sqlite.connect(dbfile)
         cur = con.cursor()
         self.root = Root()
@@ -118,6 +118,11 @@ class MainWindow(object):
         self.statusbar = self.wtree.get_widget('appbar1')
         self.gobutton_set_add()
         self.refresh_projectbox()
+        
+        self.StatusIcon = gtk.StatusIcon()
+        self.StatusIcon.set_from_file(WINDOW_ICON)
+        self.StatusIcon.connect("popup-menu", self.on_popup_menu)
+        self.StatusIcon.connect("activate", self.activate)
 
         # can't see projectbox child in glade, so need to connect signal here
         self.projectbox.get_child().connect('changed',
@@ -153,8 +158,9 @@ class MainWindow(object):
         """
         The app is going to be closed - we should save the current task in the db
         """
-        self.root.save()
-        gtk.main_quit()
+        self.window.hide()
+        # Must return True here, otherwise the windiw content will be destroyed
+        return True
 
     def gobutton_set_add(self):
         widget = self.gobutton
@@ -372,7 +378,7 @@ class MainWindow(object):
     def on_export_to_text1_activate(self, *args):
         """
         Reacion to the 'Export to text' menu item -
-        let user select a filename and then invoke exproting function
+        let user select a filename and then invoke exporting function
         """
         dialog = gtk.FileSelection("Export text file..")
         dialog.set_filename('wfyd.txt')
@@ -381,6 +387,14 @@ class MainWindow(object):
             filename = dialog.get_filename()
             self.export_text(filename)
         dialog.destroy()
+
+    def activate( self, widget, data=None):
+	self.window.show()
+        projectbox = self.wtree.get_widget('projectbox')
+        projectname = projectbox.get_child().get_text().strip()
+        
+        self.entrytree_widget.refresh(projectname)
+        self.journaltree_widget.refresh(projectname)
 
     def on_about1_activate(self, *args):
         """
@@ -417,6 +431,11 @@ class MainWindow(object):
 
     # callbacks
 
+    # popup callback 
+    def on_popup_menu(self, status, button, time):
+	popup_menu = self.wtree.get_widget('tray_popup_menu')
+	popup_menu.popup(None, None, None, button, time)
+
     def gobutton_refresh_cb(self):
         alignment = self.gobutton.get_children()[0]
         hbox = alignment.get_children()[0]
@@ -442,9 +461,14 @@ class MainWindow(object):
         """
         Delete records that are older then two days from the main task window
         """
-        current_time = time.time()
         model = self.entrytree_widget.entrytree.get_model()
         item = model.get_iter_first()
+        if item:
+            current_time = model.get_value(item, 0)
+            item = model.iter_next(item)
+        else:
+            current_time = time.time()
+            
         while item:
             item_time = model.get_value(item, 0)
             item2 = model.iter_next(item)
