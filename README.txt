@@ -26,11 +26,11 @@ Running
 
 Reporting Bugs
 
-    Visit http://sourceforge.net/projects/wfyd
+    Visit https://github.com/dsilakov/wfyd/issues
 
 Current Mantainer
 
-    Denis Silakov (d_uragan@users.sf.net)
+    Denis Silakov (dsilakov@gmail.com)
 
 Original Author
 
