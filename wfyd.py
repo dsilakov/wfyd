@@ -52,20 +52,19 @@ AUTHORS = ['Chris McDonough (chrism@plope.com)',
            'Denis Silakov (d_uragan@rambler.ru)',
            'Tres Seaver (tseaver@palladion.com)',
           ]
-WEBSITE = 'http:///wfyd.sourceforge.net'
+WEBSITE = 'https://github.com/dsilakov/wfyd'
 
 ISO = "%Y-%m-%d %H:%M:%S"
 
 # Seconds in a day (24*60*60)
 DAY_SEC=86400
-#DAY_SEC=6000
 
 dbfile = None
 
 class MainWindow(object):
 
     def __init__(self):
-        # Even if dbfile does not exist, it will be created
+        # If dbfile does not exist, it will be created
         con = sqlite.connect(dbfile)
         cur = con.cursor()
         self.root = Root()
@@ -314,7 +313,7 @@ class MainWindow(object):
         return self.on_projectbox_entry_changed(entrybox)
 
     def on_projectbox_editing_done(self, *args):
-        print args
+        print(args)
 
     def on_deleteprojectbutton_clicked(self, button):
         """
